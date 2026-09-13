@@ -101,6 +101,12 @@ swiftc -parse-as-library -swift-version 5 \
   -o "$ROOT/.build/self-tests/CodexCallArchiveSelfTests"
 "$ROOT/.build/self-tests/CodexCallArchiveSelfTests"
 
+swiftc -parse-as-library -swift-version 5 \
+  "$ROOT/Sources/CellDock/CodexPhoneBackground.swift" \
+  "$ROOT/Tests/CodexPhoneBackgroundSelfTests/main.swift" \
+  -framework AppKit -o "$ROOT/.build/self-tests/CodexPhoneBackgroundSelfTests"
+"$ROOT/.build/self-tests/CodexPhoneBackgroundSelfTests"
+
 swiftc \
   -swift-version 5 \
   "$ROOT/Sources/CellDock/AppLanguage.swift" \

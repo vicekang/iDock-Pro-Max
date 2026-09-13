@@ -39,6 +39,7 @@ flowchart LR
 | 拨号、接听、挂断、按键 | `phone_dial`、`phone_answer`、`phone_hangup`、`phone_dtmf` |
 | 收发短信 | `phone_sms_list`、`phone_sms_send` |
 | 查看近期来电、短信事件 | `phone_events` |
+| 检查锁屏值守、睡眠唤醒、模组注册和暂停记录 | `phone_background_status` |
 | 查找历史 AI 电话、文字和原声录音路径 | `phone_calls_list`、`phone_call_get` |
 | 蜂窝关闭、保持连接或优先上网 | `phone_network_set` |
 | 单次用模块获取网页 | `phone_cellular_fetch` |
@@ -79,6 +80,16 @@ python3 scripts/build_codex_local.py \
 ## VoWiFi 网络服务
 
 本地构建必须以 `app.celldock.mac` 签名主应用，并以固定 helper/runtime 标识签名辅助服务；三者必须使用同一证书。不能沿用 Swift 编译产物的 `CellDock` 临时签名标识，否则 helper 拒绝应用身份，VoWiFi 查询也会失败。打包现在验证三者的标识与证书。出现此类错误时界面显示「网络服务不可用」；LTE 电话和软件 VoWiFi 是独立链路。VoWiFi 显示「已关闭」只证明能查询网络服务，不代表运营商 SIM 鉴权、ePDG 隧道、IMS 注册已通过。
+
+## 锁屏与后台接听
+
+自动接听已开启且 USB 模组存在时，CellDock 通过 macOS 的活动 API 持有防止空闲睡眠的申请；关闭自动接听、拔掉模组或退出时释放。在通话和语音诊断期间启用音频所需的定时/I/O 精度。不会修改系统 `pmset`、关闭锁屏或要求屏幕保持点亮。电池供电时持续值守会增加耗电。
+
+语音 WKWebView 设置 `inactiveSchedulingPolicy = .none`，保留必要的渲染窗口，防止使用默认后台挂起策略。接听轮询使用主运行循环的 common 模式，避免菜单等界面模式暂停轮询。系统唤醒后刷新模组及网络状态。
+
+锁屏与系统睡眠不同。明确选择睡眠、合盖导致系统睡眠、关机或拔掉 USB 时，无法保证电话桥接在线；上述活动申请只防止空闲睡眠。Apple 官方接口说明：[ProcessInfo 活动](https://developer.apple.com/documentation/foundation/processinfo/beginactivity(options:reason:))、[WebKit 后台调度](https://developer.apple.com/documentation/webkit/wkpreferences/inactiveschedulingpolicy-swift.property)。
+
+`CodexBridge/availability.json` 保存最近 100 项后台状态事件和每 15 秒的心跳，权限 0600。包括模块连接、SIM/网络注册状态、来电阶段、语音连接阶段、轮询延迟及系统睡眠/唤醒；不保存号码、SIM 标识或谈话内容。`background.status` 可读取这些记录。它用于定位失败阶段，不应把一次心跳延迟直接断言为锁屏导致。
 
 ## 数据与验证
 

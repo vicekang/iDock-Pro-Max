@@ -16,6 +16,7 @@ final class CodexPhoneBridge: ObservableObject {
     private let server = CodexBridgeHTTPServer()
     private let agent = CodexPhoneAgent()
     private let voiceDiagnostics = CodexVoiceDiagnostics()
+    lazy var background = CodexPhoneBackground(fileURL: directory.appendingPathComponent("availability.json"))
     private let bridgeStartedAt = Date()
     private var poller: Timer?
     private var aiCall = false
@@ -74,16 +75,23 @@ final class CodexPhoneBridge: ObservableObject {
                 if let id = self.archivedCallID { self.archive.append(callID: id, role: role, text: text) }
             }
             agent.onPCM = { [weak self] pcm in self?.state?.appendCodexPCM(pcm) }
+            agent.onStage = { [weak self] stage in self?.background.note("voice.stage", details: ["stage": stage]) }
+            agent.onConnected = { [weak self] in self?.background.note("voice.connected") }
             agent.onFailure = { [weak self] error in
                 guard let self else { return }
                 self.event("agent.error", ["message": error])
+                self.background.note("voice.failed")
                 if let id = self.archivedCallID { self.archive.recordFailure(callID: id, message: error) }
                 if self.aiCall, self.state?.call.hasCall == true { self.state?.hangUp() }
             }
             try server.start(token: token) { [weak self] request, completion in self?.handle(request, completion: completion) }
-            poller = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            background.onWake = { [weak self] in self?.state?.refresh() }
+            background.start()
+            poller = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
                 Task { @MainActor in self?.poll() }
             }
+            if let poller { RunLoop.main.add(poller, forMode: .common) }
+            updateBackground()
             status = "桥接就绪 · 127.0.0.1:8767"
         } catch { status = error.localizedDescription }
     }
@@ -91,6 +99,7 @@ final class CodexPhoneBridge: ObservableObject {
     func stop() {
         finishArchive(interrupted: true)
         poller?.invalidate(); poller = nil; server.stop(); agent.stop()
+        background.stop()
         state?.routeCodexAudio(false)
     }
 
@@ -108,6 +117,7 @@ final class CodexPhoneBridge: ObservableObject {
 
     func setAutoAnswer(_ enabled: Bool) {
         autoAnswer = enabled; UserDefaults.standard.set(enabled, forKey: "codexBridge.autoAnswer")
+        updateBackground()
     }
 
     func setRecordAICalls(_ enabled: Bool) {
@@ -130,7 +140,14 @@ final class CodexPhoneBridge: ObservableObject {
 
     private func poll() {
         guard let state else { return }
+        updateBackground()
         let call = state.call
+        background.tick(modulePresent: !state.discoveredModemDevices.isEmpty, callPhase: call.phase.rawValue,
+                        radioState: ["connection": state.modem.state.rawValue,
+                                     "sim": String(describing: state.modem.simState),
+                                     "packetRegistration": String(describing: state.modem.registrationState),
+                                     "voiceRegistration": String(describing: state.modem.voiceRegistrationState),
+                                     "volteSession": state.modem.volteSessionAvailable.map { String($0) } ?? "unknown"])
         if call.phase.rawValue != previousPhase {
             previousPhase = call.phase.rawValue
             event("call", ["phase": previousPhase, "number": call.number ?? ""])
@@ -171,13 +188,21 @@ final class CodexPhoneBridge: ObservableObject {
         }
     }
 
+    private func updateBackground() {
+        background.update(.desired(running: poller != nil, autoAnswer: autoAnswer,
+                                   modulePresent: state?.discoveredModemDevices.isEmpty == false,
+                                   callActive: aiCall || state?.call.hasCall == true,
+                                   diagnosticActive: diagnosticBusy))
+    }
+
     private func snapshot() -> [String: Any] {
         guard let state else { return [:] }
-        return ["version": "0.4.1-codex", "call": ["phase": state.call.phase.rawValue,
+        return ["version": "0.4.2-codex", "call": ["phase": state.call.phase.rawValue,
                  "number": state.call.number ?? "", "audioActive": state.call.audioActive, "ai": aiCall],
                 "agent": ["status": status, "autoAnswer": autoAnswer, "recordCalls": recordAICalls, "voiceBackend": "codex-native-realtime", "codexInstalled": CodexConversation.executable != nil],
                 "recording": ["phase": String(describing: state.callRecordings.phase), "count": state.callRecordings.records.count,
                               "error": state.callRecordings.lastError ?? "", "archiveError": archive.lastError ?? ""],
+                "background": ["mode": background.mode.rawValue, "error": background.lastError ?? ""],
                 "network": ["mode": state.cellularNetworkMode.rawValue, "interface": state.network.bsdName ?? "",
                             "ipv4": state.network.ipv4Address ?? "", "active": state.network.isActive],
                 "unreadSMS": state.unreadCount, "lastEvent": eventSequence]
@@ -212,6 +237,7 @@ final class CodexPhoneBridge: ObservableObject {
         do {
             switch method {
             case "status": ok(snapshot())
+            case "background.status": ok(background.snapshot)
             case "calls.list":
                 let number = params["number"] as? String ?? ""
                 let limit = max(1, min(100, params["limit"] as? Int ?? 20))

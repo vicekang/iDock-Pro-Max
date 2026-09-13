@@ -9,6 +9,7 @@ final class CodexPhoneAgent {
     var onPCM: ((Data) -> Void)?
     var onFailure: ((String) -> Void)?
     var onConnected: (() -> Void)?
+    var onStage: ((String) -> Void)?
     private let codex = CodexConversation()
     private let audio = CodexRealtimeAudio()
     private var generation = UUID()
@@ -26,6 +27,10 @@ final class CodexPhoneAgent {
             self.onPCM?(data)
         }
         audio.onError = { [weak self] message in self?.fail(message, generation: current) }
+        audio.onStage = { [weak self] stage in
+            guard let self, self.active, self.generation == current else { return }
+            self.onStage?(stage)
+        }
         audio.onConnected = { [weak self] in
             guard let self, self.active, self.generation == current else { return }
             self.startupDeadline?.cancel(); self.startupDeadline = nil

@@ -23,6 +23,9 @@ final class CodexRealtimeAudio: NSObject, WKScriptMessageHandler, WKNavigationDe
         configuration.userContentController = controller
         configuration.websiteDataStore = .nonPersistent()
         configuration.mediaTypesRequiringUserActionForPlayback = []
+        // This is a telephone media service, including while the owner's screen
+        // is locked. Never allow an inactive WebKit page to suspend its JS graph.
+        configuration.preferences.inactiveSchedulingPolicy = .none
         let view = WKWebView(frame: NSRect(x: 0, y: 0, width: 2, height: 2), configuration: configuration)
         view.navigationDelegate = self
         webView = view
