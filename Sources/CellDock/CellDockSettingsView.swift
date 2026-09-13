@@ -307,6 +307,7 @@ struct CellDockSettingsView: View {
 
     private var generalSettings: some View {
         VStack(spacing: 16) {
+            CodexBridgeSettingsView(bridge: appState.codexBridge)
             settingsSection(title: L10n.tr("隐私保护")) {
                 VStack(spacing: 12) {
                     settingRow(

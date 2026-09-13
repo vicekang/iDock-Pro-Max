@@ -101,6 +101,12 @@ final class ModemService {
     )
     private let modemHandleLock = NSLock()
     private let voiceAudio = VoiceAudioService()
+
+    func setCodexAudio(_ enabled: Bool, downlink: ((Data) -> Void)?) {
+        voiceAudio.setExternalAudio(enabled, downlink: downlink)
+    }
+
+    func appendCodexPCM(_ pcm: Data) { voiceAudio.appendExternalPCM(pcm) }
     private var timer: DispatchSourceTimer?
     private var eventTimer: DispatchSourceTimer?
     private var modem: OpaquePointer?

@@ -1,5 +1,7 @@
 [English](README.md) · [简体中文](README.zh-CN.md)
 
+> **CellDock Codex 版（0.4.0，个人实验分支）**：新增本机 MCP/命令行电话桥接，使用已有 ChatGPT 登录，将电话音频直接接入 Codex 原生 GPT-Live 实时语音，无需额外识别模型或 OpenAI API Key。[安装、使用与验证说明](docs/CODEX_PHONE.zh-CN.md)。保留上游非商业许可证及第三方声明；本地打包版本停止上游自动更新。
+
 <p align="center">
   <img src="Resources/app_icon.png" width="128" height="128" alt="CellDock 图标">
 </p>

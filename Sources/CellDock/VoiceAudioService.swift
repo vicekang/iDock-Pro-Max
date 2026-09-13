@@ -29,6 +29,8 @@ final class VoiceAudioService {
     private var mediaEnabled = false
     private var pcmFlowReady = true
     private var muted = false
+    private var externalAudio = false
+    private var externalDownlink: ((Data) -> Void)?
     private var uacCleanupPending = false
     private var sessionGeneration: UInt64 = 0
     private var uploadBytes = Data()
@@ -65,6 +67,7 @@ final class VoiceAudioService {
     private let maximumScheduledPlaybackFrames = 3_200
 
     func requestMicrophoneAccess(completion: @escaping (Bool) -> Void) {
+        if stateLock.withLock({ externalAudio }) { completion(true); return }
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:
             completion(true)
@@ -431,6 +434,17 @@ final class VoiceAudioService {
         if value { clearUploadBytes() }
     }
 
+    func setExternalAudio(_ enabled: Bool, downlink: ((Data) -> Void)?) {
+        stateLock.withLock { externalAudio = enabled; externalDownlink = downlink }
+        clearUploadBytes()
+    }
+
+    func appendExternalPCM(_ pcm: Data) {
+        guard pcm.count % 2 == 0,
+              stateLock.withLock({ externalAudio && running && mediaEnabled && !muted }) else { return }
+        appendUploadBytes(pcm)
+    }
+
     var isRunning: Bool {
         stateLock.withLock { running }
     }
@@ -481,7 +495,8 @@ final class VoiceAudioService {
     }
 
     private func startAudioEngine(session: UInt64) throws -> Bool {
-        try playbackQueue.sync {
+        if stateLock.withLock({ externalAudio }) { return false }
+        return try playbackQueue.sync {
             scheduledPlaybackFrames = 0
             let engine = AVAudioEngine()
             let player = AVAudioPlayerNode()
@@ -539,6 +554,7 @@ final class VoiceAudioService {
     }
 
     private func copyMicrophoneSamples(_ buffer: AVAudioPCMBuffer, session: UInt64) {
+        guard !stateLock.withLock({ externalAudio }) else { return }
         guard isCurrentSession(session) else { return }
         guard let channels = buffer.floatChannelData else { return }
         let frameCount = Int(buffer.frameLength)
@@ -784,6 +800,11 @@ final class VoiceAudioService {
     }
 
     private func schedulePlayback(_ pcm: Data, session: UInt64) {
+        let external = stateLock.withLock { (externalAudio, externalDownlink) }
+        if external.0 {
+            if isActiveSession(session) { external.1?(pcm) }
+            return
+        }
         let shouldPlay = stateLock.withLock {
             sessionGeneration == session && running && mediaEnabled
         }

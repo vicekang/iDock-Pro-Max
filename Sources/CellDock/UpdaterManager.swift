@@ -67,12 +67,14 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
     }
 
     func start() {
+        guard Bundle.main.object(forInfoDictionaryKey: "CellDockCodexBridge") as? Bool != true else { return }
         #if !DEBUG
         controller.startUpdater()
         #endif
     }
 
     func checkForUpdates() {
+        guard Bundle.main.object(forInfoDictionaryKey: "CellDockCodexBridge") as? Bool != true else { return }
         #if !DEBUG
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)

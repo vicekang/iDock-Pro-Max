@@ -85,6 +85,7 @@ let package = Package(
             ],
             linkerSettings: [
                 .linkedFramework("AVFoundation"),
+                .linkedFramework("WebKit"),
                 .linkedFramework("Contacts"),
                 .linkedFramework("Vision"),
                 .linkedFramework("SystemConfiguration"),

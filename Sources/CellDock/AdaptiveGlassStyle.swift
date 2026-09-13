@@ -261,10 +261,14 @@ private struct AdaptiveConcentricGlassSurfaceModifier: ViewModifier {
     @available(macOS 26.0, *)
     @ViewBuilder
     private func glassSurface(content: Content) -> some View {
+        #if CELLDOCK_LEGACY_GLASS_SDK
+        let shape = RoundedRectangle(cornerRadius: minimumCornerRadius)
+        #else
         let shape = ConcentricRectangle(
             corners: .concentric(minimum: .fixed(minimumCornerRadius)),
             isUniform: true
         )
+        #endif
         switch (treatment, tint) {
         case let (.regular, .some(tint)):
             content
@@ -301,7 +305,11 @@ private struct AdaptiveGlassButtonModifier: ViewModifier {
             case .prominent:
                 content.buttonStyle(.glassProminent)
             case .accented:
+                #if CELLDOCK_LEGACY_GLASS_SDK
+                content.buttonStyle(.glass).tint(Color.accentColor)
+                #else
                 content.buttonStyle(.glass(.regular.tint(Color.accentColor)))
+                #endif
             }
         } else {
             switch kind {

@@ -230,6 +230,7 @@ codesign \
   "${CODESIGN_OPTIONS[@]}" \
   "${APP_REQUIREMENT_OPTIONS[@]}" \
   --identifier app.celldock.mac \
+  --entitlements "$ROOT/Resources/CellDock.entitlements" \
   "$STAGE_APP"
 codesign --verify --deep --strict --verbose=2 "$STAGE_APP"
 

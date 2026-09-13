@@ -26,3 +26,9 @@ tmp/
 # Project-specific
 website/
 .codex/
+.env
+.env.*
+!.env.example
+*.key
+*.p12
+*.keychain-db

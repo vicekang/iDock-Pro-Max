@@ -20,6 +20,7 @@ private struct NetworkModuleRestartContext {
 final class AppState: ObservableObject {
     lazy var socksProxyController = SOCKSProxyController(appState: self)
     lazy var voWiFiController = VoWiFiController(appState: self)
+    lazy var codexBridge = CodexPhoneBridge(appState: self)
     @Published private(set) var modem = ModemSnapshot()
     @Published private(set) var euicc = EUICCSnapshot.empty
     @Published private(set) var network = CellularNetworkStatus()
@@ -73,6 +74,7 @@ final class AppState: ObservableObject {
     private var secondaryEUICCProbeIdentities: [UInt32: String] = [:]
     private var moduleCallSnapshots: [CellularModuleID: CallSnapshot] = [:]
     private var activeCallModuleID: CellularModuleID?
+    private var codexAudioModuleID: CellularModuleID?
     private var sendingMessageModuleIDs: Set<CellularModuleID> = []
     private lazy var euiccService = EUICCService(modemService: modemService)
     let callHistory = CallHistoryStore()
@@ -470,6 +472,7 @@ final class AppState: ObservableObject {
         SOCKSSignalSafety.install()
         socksProxyController.start()
         voWiFiController.start()
+        codexBridge.start()
         modemInventoryService.onDevices = { [weak self] devices in
             guard let self else { return }
             self.discoveredModemDevices = devices
@@ -498,6 +501,7 @@ final class AppState: ObservableObject {
                 self.alertSounds.stopAll()
                 self.socksProxyController.stop()
                 self.voWiFiController.stop()
+                self.codexBridge.stop()
                 self.modemInventoryService.stop()
                 self.shutdownAllModemServices(completion: completion)
             }
@@ -2241,6 +2245,20 @@ final class AppState: ObservableObject {
 
     func setCallMuted(_ muted: Bool) {
         modemService(for: activeCallModuleID ?? call.moduleID)?.setCallMuted(muted)
+    }
+
+    func routeCodexAudio(_ enabled: Bool, downlink: ((Data) -> Void)? = nil) {
+        let id = enabled ? (activeCallModuleID ?? communicationModuleID()) : (codexAudioModuleID ?? communicationModuleID())
+        codexAudioModuleID = enabled ? id : nil
+        modemService(for: id)?.setCodexAudio(enabled, downlink: downlink)
+    }
+
+    func appendCodexPCM(_ pcm: Data) {
+        modemService(for: codexAudioModuleID ?? activeCallModuleID ?? communicationModuleID())?.appendCodexPCM(pcm)
+    }
+
+    func setCodexNetworkMode(_ mode: CellularNetworkMode) {
+        setCellularNetworkMode(mode, for: communicationModuleID())
     }
 
     func startCallRecording() {

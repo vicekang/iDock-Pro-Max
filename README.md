@@ -1,5 +1,7 @@
 [English](README.md) · [简体中文](README.zh-CN.md)
 
+> **CellDock Codex edition (0.4.0, experimental personal fork).** Adds a local MCP/CLI phone bridge and Chinese voice conversations powered by your existing Codex ChatGPT login. Telephone audio connects directly to Codex native GPT-Live voice over WebRTC; no extra speech model or OpenAI API key is required. See [setup, limitations, and verification](docs/CODEX_PHONE.zh-CN.md). The original CellDock non-commercial license and third-party notices remain in effect. Upstream automatic updates are disabled in this fork's local package.
+
 <p align="center">
   <img src="Resources/app_icon.png" width="128" height="128" alt="CellDock icon">
 </p>
