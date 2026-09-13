@@ -11,6 +11,7 @@ struct RecordingsLibraryView: View {
     var didHandleFocusFirstItemRequest: () -> Void = {}
 
     @State private var searchText = ""
+    @State private var showsAIArchive = false
     @State private var directionFilter = 0
     @State private var deletingRecording: CallRecordingRecord?
     @State private var isRenaming = false
@@ -32,6 +33,7 @@ struct RecordingsLibraryView: View {
             loadSelectedWaveform()
             handleFocusFirstItemRequest()
         }
+        .sheet(isPresented: $showsAIArchive) { CodexCallArchiveView() }
         .onChange(of: focusFirstItemRequest) { _, requested in
             if requested { handleFocusFirstItemRequest() }
         }
@@ -72,6 +74,8 @@ struct RecordingsLibraryView: View {
 
     private var recordingList: some View {
         VStack(spacing: 0) {
+            Button("AI 通话记录与文字") { showsAIArchive = true }
+                .padding(.bottom, 10)
             TextField("搜索录音、联系人或号码", text: $searchText)
                 .communicationSearchField()
                 .padding(.horizontal, 14)
@@ -183,7 +187,7 @@ struct RecordingsLibraryView: View {
             PhoneEmptyState(
                 title: recordings.records.isEmpty ? L10n.tr("暂无通话录音") : L10n.tr("选择一段录音"),
                 detail: recordings.records.isEmpty
-                    ? L10n.tr("在通话中手动开始录音，结束后会保存在此 Mac。")
+                    ? "AI 通话默认自动录音；也可在通话中手动开启。挂断后保存在此 Mac。"
                     : L10n.tr("可播放、定位、重命名、导出或删除通话录音。"),
                 systemImage: "waveform"
             )
@@ -316,6 +320,7 @@ private struct RecordingDetailPane: View {
     let waveform: CallRecordingWaveformData?
     let waveformError: String?
     @ObservedObject var recordings: CallRecordingStore
+    @ObservedObject private var archive = CodexCallArchive.shared
     let onCall: () -> Void
     let onMessage: () -> Void
     let onRename: () -> Void
@@ -342,6 +347,11 @@ private struct RecordingDetailPane: View {
                     )
 
                     actionBar
+
+                    if !appState.isPresentationPrivacyEnabled,
+                       let call = archive.calls.first(where: { $0.id == record.callID }) {
+                        CodexTranscriptContent(call: call)
+                    }
 
                     if let error = recordings.lastError {
                         Label(L10n.tr(error), systemImage: "exclamationmark.triangle.fill")

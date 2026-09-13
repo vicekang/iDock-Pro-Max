@@ -305,7 +305,8 @@ enum VoWiFiSessionState: Equatable, Sendable {
         case .registeringIMS: return L10n.tr("正在注册运营商 IMS")
         case .registered: return L10n.tr("VoWiFi 已就绪")
         case .desynchronized: return L10n.tr("运行时会话已失效")
-        case .failed: return L10n.tr("VoWiFi 运行时故障")
+        case let .failed(reason): return reason.localizedCaseInsensitiveContains("helper")
+            ? L10n.tr("VoWiFi 网络服务不可用") : L10n.tr("VoWiFi 运行时故障")
         }
     }
 
@@ -321,7 +322,8 @@ enum VoWiFiSessionState: Equatable, Sendable {
         case .registeringIMS: return L10n.tr("正在注册 IMS")
         case .registered: return L10n.tr("VoWiFi 已注册")
         case .desynchronized: return L10n.tr("会话已失效")
-        case .failed: return L10n.tr("运行时故障")
+        case let .failed(reason): return reason.localizedCaseInsensitiveContains("helper")
+            ? L10n.tr("网络服务不可用") : L10n.tr("运行时故障")
         }
     }
 

@@ -93,3 +93,27 @@ try expect(waveform.remote.contains(where: { $0 > 0 }), "remote waveform was emp
 try expect(waveform.local.contains(where: { $0 > 0 }), "local waveform was empty")
 
 print("Call recording self-tests passed (stereo M4A finalization and dual-channel waveform).")
+
+// AI uplink is intermittent on UAC. A pause must not move the next answer
+// earlier in the recording, or place it over the caller's preceding utterance.
+let gapURL = temporaryDirectory.appendingPathComponent("gap.m4a")
+try CallRecordingCapture.shared.start(id: UUID(), startedAt: startedAt, outputURL: gapURL)
+CallRecordingCapture.shared.appendUplink(localPCM, at: startedAt)
+CallRecordingCapture.shared.appendUplink(localPCM, at: startedAt.addingTimeInterval(2))
+CallRecordingCapture.shared.appendDownlink(remotePCM, at: startedAt)
+let gapSemaphore = DispatchSemaphore(value: 0)
+var gapResult: Result<CallRecordingCapture.FinalizedCapture, Error>?
+CallRecordingCapture.shared.stop { gapResult = $0; gapSemaphore.signal() }
+try expect(gapSemaphore.wait(timeout: .now() + 10) == .success, "gap recording timed out")
+let gapCapture = try gapResult!.get()
+try expect(abs(gapCapture.duration - 3) < 0.05, "AI pauses were compressed")
+let gapFile = try AVAudioFile(forReading: gapURL)
+let gapBuffer = AVAudioPCMBuffer(pcmFormat: gapFile.processingFormat, frameCapacity: AVAudioFrameCount(gapFile.length))!
+try gapFile.read(into: gapBuffer)
+let samples = gapBuffer.floatChannelData![1]
+let silenceEnergy = (10_000..<14_000).map { abs(samples[$0]) }.reduce(0, +)
+let speechEnergy = (18_000..<22_000).map { abs(samples[$0]) }.reduce(0, +)
+try expect(speechEnergy > 20 && silenceEnergy < speechEnergy * 0.02, "recorded AI pause was not silent")
+let permissions = try FileManager.default.attributesOfItem(atPath: gapURL.path)[.posixPermissions] as? Int
+try expect(permissions == 0o600, "recording permissions were not private")
+print("AI recording pause alignment and file privacy tests passed.")

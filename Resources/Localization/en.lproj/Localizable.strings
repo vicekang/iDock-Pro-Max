@@ -1684,3 +1684,7 @@
 "配置飞书机器人" = "Configure Feishu Bot";
 "钉钉" = "DingTalk";
 "飞书" = "Feishu";
+
+"VoWiFi 网络服务不可用" = "VoWiFi network service unavailable";
+
+"网络服务不可用" = "Network service unavailable";

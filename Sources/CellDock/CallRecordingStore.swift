@@ -56,6 +56,7 @@ final class CallRecordingStore: ObservableObject {
         directoryURL = root.appendingPathComponent("Recordings", isDirectory: true)
         metadataURL = root.appendingPathComponent("recordings.json")
         try? fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+        try? fileManager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directoryURL.path)
         load()
     }
 
@@ -397,7 +398,10 @@ final class CallRecordingStore: ObservableObject {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(records) else { return }
-        try? data.write(to: metadataURL, options: .atomic)
+        do {
+            try data.write(to: metadataURL, options: .atomic)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: metadataURL.path)
+        } catch { lastError = "录音索引保存失败：\(error.localizedDescription)" }
     }
 
     private func runIdleActions() {
@@ -455,12 +459,13 @@ final class CallRecordingCapture: @unchecked Sendable {
                 .appendingPathComponent("CellDock-recording-\(id.uuidString)", isDirectory: true)
             try FileManager.default.createDirectory(
                 at: temporaryDirectory,
-                withIntermediateDirectories: true
+                withIntermediateDirectories: true,
+                attributes: [.posixPermissions: 0o700]
             )
             let uplinkURL = temporaryDirectory.appendingPathComponent("uplink.pcm")
             let downlinkURL = temporaryDirectory.appendingPathComponent("downlink.pcm")
-            FileManager.default.createFile(atPath: uplinkURL.path, contents: nil)
-            FileManager.default.createFile(atPath: downlinkURL.path, contents: nil)
+            FileManager.default.createFile(atPath: uplinkURL.path, contents: nil, attributes: [.posixPermissions: 0o600])
+            FileManager.default.createFile(atPath: downlinkURL.path, contents: nil, attributes: [.posixPermissions: 0o600])
             let uplinkHandle = try FileHandle(forWritingTo: uplinkURL)
             let downlinkHandle = try FileHandle(forWritingTo: downlinkURL)
             lock.withLock {
@@ -515,6 +520,7 @@ final class CallRecordingCapture: @unchecked Sendable {
                 try capture.uplinkHandle.close()
                 try capture.downlinkHandle.close()
                 let result = try self.finalize(capture)
+                try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: capture.outputURL.path)
                 completion(.success(result))
             } catch {
                 try? capture.uplinkHandle.close()
@@ -555,12 +561,21 @@ final class CallRecordingCapture: @unchecked Sendable {
                     self.active = active
                 }
             }
-            let handle: FileHandle? = self.lock.withLock {
+            let channelState: (FileHandle, Date?)? = self.lock.withLock {
                 guard let active = self.active, active.id == captureID else { return nil }
-                return channel == .uplink ? active.uplinkHandle : active.downlinkHandle
+                return channel == .uplink ? (active.uplinkHandle, active.firstUplinkAt) : (active.downlinkHandle, active.firstDownlinkAt)
             }
             do {
-                try handle?.write(contentsOf: pcm)
+                guard let (handle, firstTimestamp) = channelState else { return }
+                // UAC can send only nonempty AI chunks. Preserve gaps between
+                // utterances instead of concatenating them and losing alignment
+                // with the caller. Small callback jitter stays contiguous.
+                if let firstTimestamp {
+                    let target = UInt64(max(0, min(86_400, timestamp.timeIntervalSince(firstTimestamp))) * self.sampleRate) * 2
+                    let current = try handle.offset()
+                    if target > current + 640 { try handle.seek(toOffset: target) }
+                }
+                try handle.write(contentsOf: pcm)
             } catch {
                 self.lock.withLock {
                     guard var active = self.active, active.id == captureID else { return }

@@ -95,6 +95,12 @@ swiftc \
 
 "$ROOT/.build/self-tests/CallRecordingSelfTests"
 
+swiftc -parse-as-library -swift-version 5 \
+  "$ROOT/Sources/CellDock/CodexCallArchive.swift" \
+  "$ROOT/Tests/CodexCallArchiveSelfTests/main.swift" \
+  -o "$ROOT/.build/self-tests/CodexCallArchiveSelfTests"
+"$ROOT/.build/self-tests/CodexCallArchiveSelfTests"
+
 swiftc \
   -swift-version 5 \
   "$ROOT/Sources/CellDock/AppLanguage.swift" \

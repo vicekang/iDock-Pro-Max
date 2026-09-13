@@ -69,9 +69,11 @@ def main():
     run(['ditto', args.base_app, output])
     shutil.copy2(build / 'CellDock', output / 'Contents/MacOS/CellDock')
     info = plistlib.loads((ROOT / 'Resources/Info.plist').read_bytes())
-    info.update(CFBundleShortVersionString='0.4.0-codex', CFBundleVersion='107', CellDockCodexBridge=True,
+    info.update(CFBundleShortVersionString='0.4.1-codex', CFBundleVersion='108', CellDockCodexBridge=True,
                 SUEnableAutomaticChecks=False, SUAutomaticallyUpdate=False)
     (output / 'Contents/Info.plist').write_bytes(plistlib.dumps(info))
+    for localization in (ROOT / 'Resources/Localization').glob('*.lproj'):
+        shutil.copytree(localization, output / 'Contents/Resources' / localization.name, dirs_exist_ok=True)
     entitlements = plistlib.loads((ROOT / 'Resources/CellDock.entitlements').read_bytes())
     if args.library_validation_exception:
         entitlements['com.apple.security.cs.disable-library-validation'] = True
@@ -85,7 +87,16 @@ def main():
                   output / 'Contents/Library/PrivilegedHelperTools/CellDockNetworkHelper', output]
     for component in components:
         metadata = subprocess.run(['codesign', '-dv', str(component)], capture_output=True, text=True).stderr
-        identifier = re.search(r'^Identifier=(.+)$', metadata, re.M).group(1)
+        # swiftc embeds an ad-hoc identifier derived from the executable name.
+        # It is not the application's bundle identifier or its helper identity.
+        fixed_identifiers = {
+            output: info['CFBundleIdentifier'],
+            output / 'Contents/Library/PrivilegedHelperTools/CellDockNetworkHelper': 'app.celldock.mac.network.helper',
+            output / 'Contents/Library/PrivilegedHelperTools/CellDockVoWiFiRuntime': 'app.celldock.mac.vowifi.runtime',
+        }
+        identifier = fixed_identifiers.get(component)
+        if identifier is None:
+            identifier = re.search(r'^Identifier=(.+)$', metadata, re.M).group(1)
         command = ['codesign', '--force', '--sign', args.identity, '--timestamp=none', '--options', 'runtime',
                    '--identifier', identifier, '--requirements',
                    f'=designated => identifier "{identifier}" and certificate leaf = H"{args.identity}"']
@@ -95,6 +106,9 @@ def main():
             command += ['--preserve-metadata=entitlements']
         run(command + [component])
     run(['codesign', '--verify', '--deep', '--strict', output])
+    for component, identifier in fixed_identifiers.items():
+        run(['codesign', '--verify', '--strict', '--test-requirement',
+             f'=identifier "{identifier}" and certificate leaf = H"{args.identity}"', component])
     print(output)
 
 
