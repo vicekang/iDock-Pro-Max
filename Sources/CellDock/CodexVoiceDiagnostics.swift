@@ -3,6 +3,7 @@ import Foundation
 /// Exercises the shipping WebRTC bridge without dialing or recording a microphone.
 @MainActor
 final class CodexVoiceDiagnostics {
+    private var generation = UUID()
     private let agent = CodexPhoneAgent()
     private var finish: ((Result<[String: Any], Error>) -> Void)?
     private var timeout: DispatchWorkItem?
@@ -15,6 +16,7 @@ final class CodexVoiceDiagnostics {
 
     func run(pcm: Data?, completion: @escaping (Result<[String: Any], Error>) -> Void) {
         guard finish == nil else { completion(.failure(CodexBridgeError("语音测试正在运行。"))); return }
+        generation = UUID(); let current = generation
         finish = completion; samples = 0; audibleSamples = 0; transcripts = []; connected = false
         input = pcm ?? Data()
         let hasInput = !input.isEmpty
@@ -35,10 +37,10 @@ final class CodexVoiceDiagnostics {
             self.connected = true
             // Let the greeting finish before feeding the synthetic test phrase.
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-                guard let self, self.finish != nil else { return }
+                guard let self, self.finish != nil, self.generation == current else { return }
                 self.feeder = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { [weak self] _ in
                     Task { @MainActor in
-                        guard let self, self.finish != nil else { return }
+                        guard let self, self.finish != nil, self.generation == current else { return }
                         let count = min(320, self.input.count)
                         var frame = Data(self.input.prefix(count)); self.input.removeFirst(count)
                         if frame.count < 320 { frame.append(Data(repeating: 0, count: 320 - frame.count)) }
@@ -48,7 +50,7 @@ final class CodexVoiceDiagnostics {
             }
             let duration = max(15, Double(self.input.count) / 16000 + 18)
             DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
-                guard let self, self.finish != nil else { return }
+                guard let self, self.finish != nil, self.generation == current else { return }
                 guard self.audibleSamples > 400 else { self.complete(.failure(CodexBridgeError("语音已连接，但未收到可听的回复。"))); return }
                 if hasInput && !self.transcripts.contains(where: { $0["role"] == "caller" }) {
                     self.complete(.failure(CodexBridgeError("收到声音，但测试语音未产生转写。"))); return
@@ -66,7 +68,7 @@ final class CodexVoiceDiagnostics {
 
     private func complete(_ result: Result<[String: Any], Error>) {
         guard let callback = finish else { return }
-        finish = nil; timeout?.cancel(); timeout = nil; feeder?.invalidate(); feeder = nil
+        generation = UUID(); finish = nil; timeout?.cancel(); timeout = nil; feeder?.invalidate(); feeder = nil
         agent.stop(); input.removeAll(); callback(result)
     }
 }

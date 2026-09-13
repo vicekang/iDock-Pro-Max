@@ -69,7 +69,7 @@ def main():
     run(['ditto', args.base_app, output])
     shutil.copy2(build / 'CellDock', output / 'Contents/MacOS/CellDock')
     info = plistlib.loads((ROOT / 'Resources/Info.plist').read_bytes())
-    info.update(CFBundleShortVersionString='0.4.0-codex', CFBundleVersion='106', CellDockCodexBridge=True,
+    info.update(CFBundleShortVersionString='0.4.0-codex', CFBundleVersion='107', CellDockCodexBridge=True,
                 SUEnableAutomaticChecks=False, SUAutomaticallyUpdate=False)
     (output / 'Contents/Info.plist').write_bytes(plistlib.dumps(info))
     entitlements = plistlib.loads((ROOT / 'Resources/CellDock.entitlements').read_bytes())

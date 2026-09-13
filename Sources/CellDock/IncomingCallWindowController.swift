@@ -57,7 +57,7 @@ final class CallIslandWindowController: NSObject, NSWindowDelegate {
             presentation.isExpanded = false
         }
         ensurePanel(appState: appState)
-        updatePanelSize(animated: panel?.isVisible == true)
+        updatePanelSize()
         panel?.orderFrontRegardless()
     }
 
@@ -73,7 +73,7 @@ final class CallIslandWindowController: NSObject, NSWindowDelegate {
             appState: appState,
             presentation: presentation,
             onOpenFullCall: { [weak self] in self?.onOpenFullCall?() },
-            onLayoutChange: { [weak self] in self?.updatePanelSize(animated: true) }
+            onLayoutChange: { [weak self] in self?.updatePanelSize() }
         )
         .cellDockLanguageEnvironment()
 
@@ -112,8 +112,8 @@ final class CallIslandWindowController: NSObject, NSWindowDelegate {
         restoreOrPosition(panel)
     }
 
-    private func updatePanelSize(animated: Bool) {
-        guard let appState, let panel else { return }
+    private func updatePanelSize() {
+        guard !isAdjustingFrame, let appState, let panel else { return }
         let targetSize = CallIslandView.contentSize(
             for: appState.call.phase,
             isExpanded: presentation.isExpanded
@@ -128,8 +128,11 @@ final class CallIslandWindowController: NSObject, NSWindowDelegate {
             height: targetSize.height
         ))
         isAdjustingFrame = true
-        panel.setFrame(targetFrame, display: true, animate: animated)
-        isAdjustingFrame = false
+        defer { isAdjustingFrame = false }
+        // NSWindow's synchronous animation spins a nested run loop. During an
+        // incoming -> active transition SwiftUI can request another resize,
+        // reentering AppKit's animation driver and crashing the call process.
+        panel.setFrame(targetFrame, display: true, animate: false)
     }
 
     private func restoreOrPosition(_ panel: NSPanel) {
