@@ -1,8 +1,8 @@
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-> **0.4.3 实验功能：**一次开启 Mac/iPhone 自动切换，保留手机上网启动配置，连接 Mac 自动恢复声卡。详见[实现依据、使用方法和待完成的 iPhone 验收](docs/MAC_IPHONE_AUTO_SWITCH.zh-CN.md)。
+> **0.4.4 新增：**来电时提前准备 Codex，接通后先播放本地开场白，支持导入自己的录音。[使用与验证边界](docs/INSTANT_CALL_OPENING.zh-CN.md)。保留 0.4.3 的 [Mac/iPhone 自动切换实验功能](docs/MAC_IPHONE_AUTO_SWITCH.zh-CN.md)。
 
-> **CellDock Codex 版（0.4.3，个人实验分支）**：新增本机 MCP/命令行电话桥接，使用已有 ChatGPT 登录，将电话音频直接接入 Codex 原生 GPT-Live 实时语音，无需额外识别模型或 OpenAI API Key。[安装、使用与验证说明](docs/CODEX_PHONE.zh-CN.md)。保留上游非商业许可证及第三方声明；本地打包版本停止上游自动更新。
+> **CellDock Codex 版（0.4.4，个人实验分支）**：新增本机 MCP/命令行电话桥接，使用已有 ChatGPT 登录，将电话音频直接接入 Codex 原生 GPT-Live 实时语音，无需额外识别模型或 OpenAI API Key。[安装、使用与验证说明](docs/CODEX_PHONE.zh-CN.md)。保留上游非商业许可证及第三方声明；本地打包版本停止上游自动更新。
 
 <p align="center">
   <img src="Resources/app_icon.png" width="128" height="128" alt="CellDock 图标">

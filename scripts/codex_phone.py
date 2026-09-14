@@ -80,6 +80,7 @@ TOOLS = [
     ('phone_cellular_fetch', 'network.fetch', 'Fetch an owner-requested HTTP(S) URL through the module interface without changing the Mac default route.', schema({'url': STRING}, ['url'])),
     ('phone_agent_configure', 'agent.configure', 'Configure automatic incoming-call answering and the owner-provided telephone role. Only the owner can change these instructions.', schema({'autoAnswer': BOOL, 'recordCalls': BOOL, 'instructions': STRING, 'greeting': STRING, 'maximumCallSeconds': {'type': 'number', 'minimum': 60, 'maximum': 3600}})),
     ('phone_voice_test', 'agent.voiceTest', 'Test Codex native realtime voice using the current ChatGPT login. No phone call or microphone recording.', schema()),
+    ('phone_opening_status', 'opening.status', 'Read the saved local call opening and playback state. Import recordings in CellDock settings.', schema()),
     ('phone_agent_test', 'agent.test', 'Test the saved Codex ChatGPT login with a text message; does not call or message anybody.', schema({'text': STRING})),
 ]
 
@@ -99,12 +100,12 @@ def mcp_response(message):
     method, params = message.get('method'), message.get('params') or {}
     if method == 'initialize':
         return {'protocolVersion': '2024-11-05', 'capabilities': {'tools': {}},
-                'serverInfo': {'name': 'celldock-phone', 'version': '0.4.3'}}
+                'serverInfo': {'name': 'celldock-phone', 'version': '0.4.4'}}
     if method == 'ping':
         return {}
     if method == 'tools/list':
         return {'tools': [{'name': name, 'description': description, 'inputSchema': inputs,
-                           'annotations': {'readOnlyHint': action in ('status', 'background.status', 'events', 'calls.list', 'calls.get', 'contacts.search', 'sms.list', 'network.fetch', 'portability.status'),
+                           'annotations': {'readOnlyHint': action in ('status', 'background.status', 'events', 'calls.list', 'calls.get', 'contacts.search', 'sms.list', 'network.fetch', 'portability.status', 'opening.status'),
                                            'openWorldHint': True}}
                           for name, action, description, inputs in TOOLS]}
     if method == 'tools/call':

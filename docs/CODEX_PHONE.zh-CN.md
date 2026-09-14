@@ -2,12 +2,14 @@
 
 基于 [CellDock](https://github.com/celldock/celldock-for-mac) 的个人非商业改造。CellDock 管理 DJI 4G 模块、SIM、短信、电话和蜂窝网络；Codex 使用现有 ChatGPT 登录处理指令及原生实时语音。
 
+0.4.4 支持[接通后播放本地开场白、导入自己的录音与提前准备 AI](INSTANT_CALL_OPENING.zh-CN.md)。
+
 ## 使用
 
 1. 打开 CellDock，确保模块已联网、能够正常打电话。
 2. 在设置中的「Codex 电话助理」点击「测试 Codex 原生语音」。无需开启系统听写、安装识别模型或填写 API Key。
 3. 开启「Codex 自动接听来电」后，来电接通即由 AI 助理交谈。默认开场说明 AI 身份，单次通话最长 10 分钟。
-4.「自动保存 AI 通话录音」默认开启。AI 开场会告知录音；挂断后从左侧录音库或设置中的「查看通话记录与录音」回放、导出。文字逐句保存，重启后仍可查询。
+4.「自动保存 AI 通话录音」默认开启。开场会告知录音；挂断后从左侧录音库或设置中的「查看通话记录与录音」回放、导出。文字逐句保存，重启后仍可查询。
 5. 在 Codex 中指示查找联系人、拨打指定号码、发送指定短信或通过模块上网。
 
 短信目前按机主指令读取和发送。自动接听默认关闭，开启后处理所有来电；最长通话可配置为 60–3600 秒。语音开始连接需要时间，服务错误会结束 AI 电话并记录错误，避免长时间静默占线。
@@ -27,7 +29,7 @@ flowchart LR
 
 使用本机 Codex 的 `thread/realtime/start`、`transport=webrtc`、`version=v3`。Codex 自己处理登录、创建语音会话和模型交接；CellDock 不读取、复制或保存 ChatGPT 令牌。WebKit 从电话 PCM 创建音轨，将返回的模型音频转换成 8 kHz 单声道 PCM，交回原来的 USB 音频服务。不会采集 Mac 麦克风或把模型声音播放到 Mac 扬声器。
 
-语音理解、发声、轮次判断与打断由 Codex 原生实时模型处理，没有 Apple Speech、Whisper 或外接语音合成链路。[官方原生语音说明](https://learn.chatgpt.com/docs/features/voice)、[App Server](https://learn.chatgpt.com/docs/app-server)、[官方实时连接实现](https://github.com/openai/codex/blob/main/codex-rs/core/src/realtime_conversation.rs)。这些实时协议仍属实验接口，升级 Codex 后应重新运行语音测试。
+语音理解、发声、轮次判断与打断由 Codex 原生实时模型处理，实时对话没有 Apple Speech、Whisper 或外接语音合成链路；0.4.4 的本地开场白是预先保存的独立音频。[官方原生语音说明](https://learn.chatgpt.com/docs/features/voice)、[App Server](https://learn.chatgpt.com/docs/app-server)、[官方实时连接实现](https://github.com/openai/codex/blob/main/codex-rs/core/src/realtime_conversation.rs)。这些实时协议仍属实验接口，升级 Codex 后应重新运行语音测试。
 
 通话音频会发送给 Codex 语音服务，受账户额度和网络状态影响。电话会话设为 ephemeral，禁用 shell、Web 搜索、apps、MCP 和环境访问；电话另一端不能通过说话取得机主电脑的操作权。机主自己的 Codex 任务通过独立的电话 MCP 执行已授权操作。
 
@@ -44,7 +46,7 @@ flowchart LR
 | 蜂窝关闭、保持连接或优先上网 | `phone_network_set` |
 | 单次用模块获取网页 | `phone_cellular_fetch` |
 | 自动接听、角色、开场白 | `phone_agent_configure` |
-| 原生语音自检 | `phone_voice_test` |
+| 原生语音自检、本地开场白状态 | `phone_voice_test`、`phone_opening_status` |
 
 注册 MCP（Python 3 仅用于工具适配，不运行语音模型）：
 

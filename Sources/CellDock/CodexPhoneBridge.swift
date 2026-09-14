@@ -16,6 +16,16 @@ final class CodexPhoneBridge: ObservableObject {
     private let server = CodexBridgeHTTPServer()
     private let agent = CodexPhoneAgent()
     private let voiceDiagnostics = CodexVoiceDiagnostics()
+    lazy var openingAudio = CodexOpeningAudio(directory: directory.appendingPathComponent("OpeningAudio"))
+    private var openingPlayback = CodexOpeningPlayback()
+    private var openingTimer: Timer?
+    private var openingGeneration = UUID()
+    private var preparedOpening: CodexOpeningClip?
+    private var preparedOpeningWithNotice: CodexOpeningClip?
+    private var preparedOpeningWithoutNotice: CodexOpeningClip?
+    private var firstOutgoingSound = false
+    private var mediaReadyAt: TimeInterval?
+    private var pendingTranscripts: [(String, String)] = []
     lazy var background = CodexPhoneBackground(fileURL: directory.appendingPathComponent("availability.json"))
     private let bridgeStartedAt = Date()
     private var poller: Timer?
@@ -51,6 +61,7 @@ final class CodexPhoneBridge: ObservableObject {
     func start() {
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            _ = openingAudio // Decode/cache local clips before the first incoming call.
             let tokenURL = directory.appendingPathComponent("token")
             let token: String
             if FileManager.default.fileExists(atPath: tokenURL.path) {
@@ -73,15 +84,26 @@ final class CodexPhoneBridge: ObservableObject {
                 guard let self else { return }
                 self.event("transcript", ["role": role, "text": text, "callID": self.archivedCallID?.uuidString ?? ""])
                 if let id = self.archivedCallID { self.archive.append(callID: id, role: role, text: text) }
+                else if self.aiCall { self.pendingTranscripts.append((role, text)) }
             }
-            agent.onPCM = { [weak self] pcm in self?.state?.appendCodexPCM(pcm) }
+            agent.onPCM = { [weak self] pcm in
+                guard let self, self.aiCall else { return }
+                if let frame = self.openingPlayback.receiveModel(pcm) { self.sendCallPCM(frame) }
+                if self.openingPlayback.overflowed {
+                    self.stopOpeningPlayback()
+                    self.event("agent.error", ["message": "开场期间的 AI 音频队列超出上限。"])
+                    self.state?.hangUp()
+                }
+            }
             agent.onStage = { [weak self] stage in self?.background.note("voice.stage", details: ["stage": stage]) }
+            agent.onInterruption = { [weak self] in self?.openingPlayback.discardInterruptedReply() }
             agent.onConnected = { [weak self] in self?.background.note("voice.connected") }
             agent.onFailure = { [weak self] error in
                 guard let self else { return }
                 self.event("agent.error", ["message": error])
                 self.background.note("voice.failed")
                 if let id = self.archivedCallID { self.archive.recordFailure(callID: id, message: error) }
+                self.stopOpeningPlayback()
                 if self.aiCall, self.state?.call.hasCall == true { self.state?.hangUp() }
             }
             try server.start(token: token) { [weak self] request, completion in self?.handle(request, completion: completion) }
@@ -97,6 +119,7 @@ final class CodexPhoneBridge: ObservableObject {
     }
 
     func stop() {
+        stopOpeningPlayback(); openingAudio.stopPreview()
         finishArchive(interrupted: true)
         poller?.invalidate(); poller = nil; server.stop(); agent.stop()
         background.stop()
@@ -133,9 +156,58 @@ final class CodexPhoneBridge: ObservableObject {
         guard !diagnosticBusy else { throw CodexBridgeError("诊断正在运行。") }
         guard CodexConversation.executable != nil else { throw CodexBridgeError("请安装并登录 Codex。") }
         aiCall = true; agentStarted = false; startedAt = Date()
+        stopOpeningPlayback(); pendingTranscripts.removeAll()
+        openingAudio.stopPreview()
+        preparedOpeningWithNotice = openingAudio.clip(recording: true)
+        preparedOpeningWithoutNotice = openingAudio.clip(recording: false)
+        preparedOpening = recordAICalls || state?.callRecordings.isRecording == true || state?.automaticallyRecordCalls == true
+            ? preparedOpeningWithNotice : preparedOpeningWithoutNotice
+        openingPlayback.prepare(preparedOpening?.pcm ?? Data())
+        firstOutgoingSound = false; mediaReadyAt = nil
         state?.routeCodexAudio(true) { [weak self] data in
             Task { @MainActor in self?.agent.receive(data) }
         }
+        background.note("voice.prewarm")
+        // Start the process, WebKit and WebRTC before ATA/UAC completes.
+        agent.start(instructions: instructions, greeting: greeting, deferGreeting: true,
+                    prerecordedOpening: preparedOpening?.text)
+        guard agent.active else {
+            aiCall = false; state?.routeCodexAudio(false)
+            throw CodexBridgeError(agent.status)
+        }
+    }
+
+    private func sendCallPCM(_ pcm: Data) {
+        guard aiCall, state?.call.phase == .active, state?.call.audioActive == true else { return }
+        state?.appendCodexPCM(pcm)
+        if !firstOutgoingSound, CodexOpeningPlayback.hasVoice(pcm) {
+            firstOutgoingSound = true
+            let delay = mediaReadyAt.map { max(0, ProcessInfo.processInfo.systemUptime - $0) } ?? 0
+            background.note("voice.first-output-enqueued", details: ["secondsAfterMediaReady": delay])
+        }
+    }
+
+    private func startOpeningPlayback() {
+        openingPlayback.mediaReady()
+        guard openingPlayback.phase != .live else { return }
+        let current = openingGeneration
+        func tick() {
+            guard self.openingGeneration == current, self.aiCall else { return }
+            if let frame = self.openingPlayback.nextFrame() { self.sendCallPCM(frame) }
+            if self.openingPlayback.phase == .live {
+                self.openingTimer?.invalidate(); self.openingTimer = nil
+                self.background.note("voice.opening-finished")
+            }
+        }
+        let timer = Timer(timeInterval: 0.02, repeats: true) { _ in MainActor.assumeIsolated { tick() } }
+        openingTimer = timer; RunLoop.main.add(timer, forMode: .common)
+        tick()
+    }
+
+    private func stopOpeningPlayback() {
+        openingGeneration = UUID(); openingTimer?.invalidate(); openingTimer = nil
+        openingPlayback.stop(); preparedOpening = nil
+        preparedOpeningWithNotice = nil; preparedOpeningWithoutNotice = nil
     }
 
     private func poll() {
@@ -168,14 +240,28 @@ final class CodexPhoneBridge: ObservableObject {
             archivedCallID = id
             archive.begin(id: id, number: call.number ?? "", direction: call.direction?.rawValue ?? "incoming",
                           recordingRequested: recordAICalls || state.callRecordings.isRecording)
+            for (role, text) in pendingTranscripts { archive.append(callID: id, role: role, text: text) }
+            pendingTranscripts.removeAll()
             if recordAICalls, !state.callRecordings.isRecording { state.startCallRecording() }
             if recordAICalls, !state.callRecordings.isRecording {
                 archive.recordFailure(callID: id, message: state.callRecordings.lastError ?? "录音未能启动")
                 event("recording.error", ["callID": id.uuidString, "message": state.callRecordings.lastError ?? "录音未能启动"])
             }
             agentStarted = true; callDeadline = Date().addingTimeInterval(maximumCallSeconds)
+            mediaReadyAt = ProcessInfo.processInfo.systemUptime
+            background.note("voice.media-ready")
             let recordingNotice = state.callRecordings.isRecording ? "本次通话会录音并保存文字，方便机主回看。" : ""
-            agent.start(instructions: instructions, greeting: recordingNotice + greeting)
+            // Re-evaluate the notice after recording start, which can fail.
+            if preparedOpening != nil {
+                preparedOpening = state.callRecordings.isRecording ? preparedOpeningWithNotice : preparedOpeningWithoutNotice
+                openingPlayback.replaceOpening(preparedOpening?.pcm ?? Data())
+                if let clip = preparedOpening {
+                    archive.append(callID: id, role: "assistant", text: "[本机预录开场白] " + (clip.text.isEmpty ? clip.name : clip.text))
+                    background.note("voice.opening-start", details: ["duration": clip.duration])
+                }
+            }
+            startOpeningPlayback()
+            agent.activate(greeting: recordingNotice + greeting, prerecorded: preparedOpening != nil)
         }
         if aiCall, let callDeadline, Date() >= callDeadline, !state.isChangingCall {
             state.hangUp(); self.callDeadline = nil
@@ -183,6 +269,7 @@ final class CodexPhoneBridge: ObservableObject {
         if aiCall, !call.hasCall, !state.isChangingCall,
            Date().timeIntervalSince(startedAt ?? .distantPast) > 2 {
             finishArchive()
+            stopOpeningPlayback(); pendingTranscripts.removeAll()
             agent.stop(); state.routeCodexAudio(false)
             aiCall = false; agentStarted = false; callDeadline = nil
         }
@@ -197,7 +284,7 @@ final class CodexPhoneBridge: ObservableObject {
 
     private func snapshot() -> [String: Any] {
         guard let state else { return [:] }
-        return ["version": "0.4.3-codex", "portability": portabilitySnapshot(), "call": ["phase": state.call.phase.rawValue,
+        return ["version": "0.4.4-codex", "opening": openingSnapshot(), "portability": portabilitySnapshot(), "call": ["phase": state.call.phase.rawValue,
                  "number": state.call.number ?? "", "audioActive": state.call.audioActive, "ai": aiCall],
                 "agent": ["status": status, "autoAnswer": autoAnswer, "recordCalls": recordAICalls, "voiceBackend": "codex-native-realtime", "codexInstalled": CodexConversation.executable != nil],
                 "recording": ["phase": String(describing: state.callRecordings.phase), "count": state.callRecordings.records.count,
@@ -206,6 +293,13 @@ final class CodexPhoneBridge: ObservableObject {
                 "network": ["mode": state.cellularNetworkMode.rawValue, "interface": state.network.bsdName ?? "",
                             "ipv4": state.network.ipv4Address ?? "", "active": state.network.isActive],
                 "unreadSMS": state.unreadCount, "lastEvent": eventSequence]
+    }
+
+    private func openingSnapshot() -> [String: Any] {
+        let clip = openingAudio.clip(recording: recordAICalls)
+        return ["enabled": openingAudio.enabled, "available": clip != nil, "name": openingAudio.displayName,
+                "duration": clip?.duration ?? 0, "phase": openingPlayback.phase.rawValue,
+                "custom": openingAudio.customName != nil, "error": openingAudio.lastError ?? ""]
     }
 
     private func portabilitySnapshot() -> [String: Any] {
@@ -249,6 +343,7 @@ final class CodexPhoneBridge: ObservableObject {
         do {
             switch method {
             case "status": ok(snapshot())
+            case "opening.status": ok(openingSnapshot())
             case "portability.status": ok(portabilitySnapshot())
             case "portability.configure":
                 guard !diagnosticBusy, !aiCall, let enabled = params["enabled"] as? Bool else {
@@ -332,7 +427,7 @@ final class CodexPhoneBridge: ObservableObject {
                     UserDefaults.standard.set(seconds, forKey: "codexBridge.maximumCallSeconds")
                 }
                 ok(snapshot())
-            case "agent.voiceTest":
+            case "agent.voiceTest", "agent.openingTest":
                 guard !state.call.hasCall, !diagnosticBusy else { throw CodexBridgeError("请在无通话时测试。") }
                 var pcm: Data?
                 if let encoded = params["pcm8k"] as? String {
@@ -342,7 +437,11 @@ final class CodexPhoneBridge: ObservableObject {
                     pcm = data
                 }
                 diagnosticBusy = true
-                voiceDiagnostics.run(pcm: pcm) { [weak self] result in
+                let opening = method == "agent.openingTest" ? openingAudio.clip(recording: recordAICalls) : nil
+                if method == "agent.openingTest", opening == nil {
+                    diagnosticBusy = false; throw CodexBridgeError("请先启用并导入开场音频。")
+                }
+                voiceDiagnostics.run(pcm: pcm, opening: opening) { [weak self] result in
                     self?.diagnosticBusy = false
                     switch result {
                     case .success(let value): ok(value)

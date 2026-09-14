@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="${0:A:h:h}"
+cd "$ROOT"
 mkdir -p "$ROOT/.build/caches/clang" "$ROOT/.build/caches/swiftpm"
 export CLANG_MODULE_CACHE_PATH="${CLANG_MODULE_CACHE_PATH:-$ROOT/.build/caches/clang}"
 export SWIFTPM_MODULECACHE_OVERRIDE="${SWIFTPM_MODULECACHE_OVERRIDE:-$ROOT/.build/caches/swiftpm}"
@@ -106,6 +107,21 @@ swiftc -parse-as-library -swift-version 5 \
   "$ROOT/Tests/CodexPhoneBackgroundSelfTests/main.swift" \
   -framework AppKit -o "$ROOT/.build/self-tests/CodexPhoneBackgroundSelfTests"
 "$ROOT/.build/self-tests/CodexPhoneBackgroundSelfTests"
+
+swiftc -parse-as-library -swift-version 5 \
+  "$ROOT/Sources/CellDock/CodexOpeningPlayback.swift" \
+  "$ROOT/Sources/CellDock/CodexOpeningAudio.swift" \
+  "$ROOT/Tests/CodexOpeningSelfTests/main.swift" \
+  -framework AVFoundation -framework AppKit \
+  -o "$ROOT/.build/self-tests/CodexOpeningSelfTests"
+"$ROOT/.build/self-tests/CodexOpeningSelfTests"
+
+swiftc -parse-as-library -swift-version 5 \
+  "$ROOT/Sources/CellDock/CodexOpeningPlayback.swift" \
+  "$ROOT/Sources/CellDock/CodexPhoneAgent.swift" \
+  "$ROOT/Tests/CodexPhoneAgentSelfTests/main.swift" \
+  -o "$ROOT/.build/self-tests/CodexPhoneAgentSelfTests"
+"$ROOT/.build/self-tests/CodexPhoneAgentSelfTests"
 
 swiftc \
   -swift-version 5 \
