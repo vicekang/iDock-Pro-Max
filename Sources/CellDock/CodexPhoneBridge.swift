@@ -13,6 +13,8 @@ final class CodexPhoneBridge: ObservableObject {
     @Published private(set) var voice = CodexPhoneVoice(rawValue: UserDefaults.standard.string(forKey: "codexBridge.voice") ?? "default") ?? .automatic
     let archive = CodexCallArchive.shared
     private var archivedCallID: UUID?
+    private var currentOwnerTask: String?
+    private var currentGreeting = ""
     private weak var state: AppState?
     private let server = CodexBridgeHTTPServer()
     private let agent = CodexPhoneAgent()
@@ -78,6 +80,11 @@ final class CodexPhoneBridge: ObservableObject {
             if let data = try? Data(contentsOf: directory.appendingPathComponent("receipts.json")),
                let saved = (try? JSONSerialization.jsonObject(with: data)) as? [String: [String: Any]] {
                 receipts = saved; receiptOrder = Array(saved.keys)
+            }
+            if let data = try? Data(contentsOf: directory.appendingPathComponent("events.json")),
+               let saved = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] {
+                events = Array(saved.suffix(2000))
+                eventSequence = events.compactMap { $0["sequence"] as? Int }.max() ?? 0
             }
             seenMessages = Set(state?.messages.map(\.id) ?? [])
             agent.onStatus = { [weak self] status in self?.status = status }
@@ -157,14 +164,18 @@ final class CodexPhoneBridge: ObservableObject {
         archivedCallID = nil
     }
 
-    private func prepareCall() throws {
+    private func prepareCall(ownerTask: String? = nil, outgoing: Bool = false) throws {
         guard !diagnosticBusy else { throw CodexBridgeError("诊断正在运行。") }
         guard CodexConversation.executable != nil else { throw CodexBridgeError("请安装并登录 Codex。") }
+        currentOwnerTask = ownerTask
+        currentGreeting = outgoing ? "您好，我是机主的 AI 电话助理，受机主委托致电。" : greeting
+        let callInstructions = instructions + (outgoing ? "\n这是机主授权的主动外呼。先说明 AI 助理身份和来意，围绕本次任务沟通，不能编造已经执行的操作。" : "")
+            + (ownerTask.map { "\n仅本次通话的机主任务：\n" + $0 } ?? "")
         aiCall = true; agentStarted = false; startedAt = Date()
         stopOpeningPlayback(); pendingTranscripts.removeAll()
         openingAudio.stopPreview()
-        preparedOpeningWithNotice = openingAudio.clip(recording: true)
-        preparedOpeningWithoutNotice = openingAudio.clip(recording: false)
+        preparedOpeningWithNotice = outgoing ? nil : openingAudio.clip(recording: true)
+        preparedOpeningWithoutNotice = outgoing ? nil : openingAudio.clip(recording: false)
         preparedOpening = recordAICalls || state?.callRecordings.isRecording == true || state?.automaticallyRecordCalls == true
             ? preparedOpeningWithNotice : preparedOpeningWithoutNotice
         openingPlayback.prepare(preparedOpening?.pcm ?? Data())
@@ -174,7 +185,7 @@ final class CodexPhoneBridge: ObservableObject {
         }
         background.note("voice.prewarm")
         // Start the process, WebKit and WebRTC before ATA/UAC completes.
-        agent.start(instructions: instructions, greeting: greeting, deferGreeting: true,
+        agent.start(instructions: callInstructions, greeting: currentGreeting, deferGreeting: true,
                     prerecordedOpening: preparedOpening?.text, voice: voice)
         guard agent.active else {
             aiCall = false; state?.routeCodexAudio(false)
@@ -244,7 +255,7 @@ final class CodexPhoneBridge: ObservableObject {
                   let id = state.callHistory.currentCallID(for: call.moduleID) else { return }
             archivedCallID = id
             archive.begin(id: id, number: call.number ?? "", direction: call.direction?.rawValue ?? "incoming",
-                          recordingRequested: recordAICalls || state.callRecordings.isRecording)
+                          recordingRequested: recordAICalls || state.callRecordings.isRecording, ownerTask: currentOwnerTask)
             for (role, text) in pendingTranscripts { archive.append(callID: id, role: role, text: text) }
             pendingTranscripts.removeAll()
             if recordAICalls, !state.callRecordings.isRecording { state.startCallRecording() }
@@ -266,7 +277,7 @@ final class CodexPhoneBridge: ObservableObject {
                 }
             }
             startOpeningPlayback()
-            agent.activate(greeting: recordingNotice + greeting, prerecorded: preparedOpening != nil)
+            agent.activate(greeting: recordingNotice + currentGreeting, prerecorded: preparedOpening != nil)
         }
         if aiCall, let callDeadline, Date() >= callDeadline, !state.isChangingCall {
             state.hangUp(); self.callDeadline = nil
@@ -289,7 +300,7 @@ final class CodexPhoneBridge: ObservableObject {
 
     private func snapshot() -> [String: Any] {
         guard let state else { return [:] }
-        return ["version": "0.4.5-codex", "opening": openingSnapshot(), "portability": portabilitySnapshot(), "call": ["phase": state.call.phase.rawValue,
+        return ["version": "0.4.6-codex", "opening": openingSnapshot(), "portability": portabilitySnapshot(), "call": ["phase": state.call.phase.rawValue,
                  "number": state.call.number ?? "", "audioActive": state.call.audioActive, "ai": aiCall],
                 "agent": ["status": status, "autoAnswer": autoAnswer, "recordCalls": recordAICalls, "voice": voice.rawValue, "voiceBackend": "codex-native-realtime", "codexInstalled": CodexConversation.executable != nil],
                 "recording": ["phase": String(describing: state.callRecordings.phase), "count": state.callRecordings.records.count,
@@ -297,7 +308,8 @@ final class CodexPhoneBridge: ObservableObject {
                 "background": ["mode": background.mode.rawValue, "error": background.lastError ?? ""],
                 "network": ["mode": state.cellularNetworkMode.rawValue, "interface": state.network.bsdName ?? "",
                             "ipv4": state.network.ipv4Address ?? "", "active": state.network.isActive],
-                "unreadSMS": state.unreadCount, "lastEvent": eventSequence]
+                "unreadSMS": state.unreadCount, "lastEvent": eventSequence,
+                "firstEvent": events.first?["sequence"] as? Int ?? eventSequence]
     }
 
     private func openingSnapshot() -> [String: Any] {
@@ -398,7 +410,9 @@ final class CodexPhoneBridge: ObservableObject {
             case "call.dial":
                 guard !state.call.hasCall, state.call.canDial, !state.isChangingCall,
                       let number = params["number"] as? String, CallATParser.normalizedDialNumber(number) != nil else { throw CodexBridgeError("号码无效或当前不能拨号。") }
-                if params["ai"] as? Bool ?? true { try prepareCall() }
+                let ownerTask = (params["task"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard ownerTask == nil || (ownerTask!.count > 0 && ownerTask!.count <= 4000) else { throw CodexBridgeError("外呼任务必须为 1 至 4000 字。") }
+                if params["ai"] as? Bool ?? true { try prepareCall(ownerTask: ownerTask, outgoing: true) }
                 state.dial(number); ok(["accepted": true, "verify": "status"])
             case "call.answer":
                 guard state.call.phase == .incoming, !state.isChangingCall else { throw CodexBridgeError("当前没有可接听的电话。") }
@@ -482,7 +496,7 @@ final class CodexPhoneBridge: ObservableObject {
         let available = audioURL.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
         var value: [String: Any] = ["callID": call.id.uuidString, "number": call.number, "direction": call.direction,
             "startedAt": call.startedAt.timeIntervalSince1970, "endedAt": call.endedAt?.timeIntervalSince1970 ?? 0,
-            "interrupted": call.interrupted, "recordingRequested": call.recordingRequested,
+            "interrupted": call.interrupted, "recordingRequested": call.recordingRequested, "ownerTask": call.ownerTask ?? "",
             "audioAvailable": available, "audioPath": available ? (audioURL?.path ?? "") : "",
             "audioIncomplete": recording?.isIncomplete ?? false, "failure": call.failure ?? "",
             "transcriptCount": call.transcript.count, "transcriptPath": archive.fileURL(for: call).path]
@@ -506,6 +520,11 @@ final class CodexPhoneBridge: ObservableObject {
         var value = fields; value["type"] = type; value["sequence"] = eventSequence
         value["timestamp"] = Date().timeIntervalSince1970
         events.append(value)
-        if events.count > 300 { events.removeFirst(events.count - 300) }
+        if events.count > 2000 { events.removeFirst(events.count - 2000) }
+        do {
+            let url = directory.appendingPathComponent("events.json")
+            try JSONSerialization.data(withJSONObject: events).write(to: url, options: .atomic)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        } catch { status = "电话事件保存失败：\(error.localizedDescription)" }
     }
 }

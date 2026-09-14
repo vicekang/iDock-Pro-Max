@@ -1,0 +1,150 @@
+--- a/src/config/profile-schema.ts
++++ b/src/config/profile-schema.ts
+@@ -21,6 +21,7 @@
+   allowedUsers: string[];
+   allowedChats: string[];
+   silentDeniedChats: string[];
++  commandChats?: Record<string, string>;
+   admins: string[];
+   requireMentionInGroup: boolean;
+ }
+@@ -246,6 +247,19 @@
+   return value === 'card' || value === 'markdown' || value === 'text';
+ }
+
++function commandChats(value: unknown): Record<string, string> | undefined {
++  if (value === undefined) return undefined;
++  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('commandChats must map chat IDs to owner IDs');
++  const result: Record<string, string> = {};
++  for (const [chat, owner] of Object.entries(value)) {
++    if (!/^oc_[a-zA-Z0-9]+$/.test(chat) || typeof owner !== 'string' || !/^ou_[a-zA-Z0-9]+$/.test(owner)) {
++      throw new Error('commandChats requires a valid chat ID and one human owner ID');
++    }
++    result[chat] = owner;
++  }
++  return result;
++}
++
+ function normalizeAccess(
+   access: Partial<ProfileAccess> | undefined,
+   legacyRequireMentionInGroup: boolean | undefined,
+@@ -254,6 +268,7 @@
+     allowedUsers: stringArray(access?.allowedUsers),
+     allowedChats: stringArray(access?.allowedChats),
+     silentDeniedChats: stringArray(access?.silentDeniedChats),
++    ...(access?.commandChats !== undefined ? { commandChats: commandChats(access.commandChats) } : {}),
+     admins: stringArray(access?.admins),
+     requireMentionInGroup: access?.requireMentionInGroup ?? legacyRequireMentionInGroup ?? true,
+   };
+--- a/src/config/schema.ts
++++ b/src/config/schema.ts
+@@ -81,6 +81,7 @@
+   allowedChats?: string[];
+   /** Denied group chats where even a direct @mention receives no onboarding hint. */
+   silentDeniedChats?: string[];
++  commandChats?: Record<string, string>;
+   /** open_id list with admin privileges. Gates sensitive commands
+    * (/account, /config, /exit, /reconnect, /doctor, /cd, /ws, /doc,
+    * /invite, /remove). */
+--- a/src/policy/access.ts
++++ b/src/policy/access.ts
+@@ -45,6 +45,8 @@
+   chatId: string,
+   senderId: string,
+ ): AccessDecision {
++  const owner = profile.access.commandChats?.[chatId];
++  if (owner) return owner === senderId ? allow('owner') : deny('denied-user');
+   if (isCreator(controls, senderId)) return allow('owner');
+   if (profile.access.admins.includes(senderId)) return allow('allowed-admin');
+   if (profile.access.allowedChats.includes(chatId)) return allow('allowed-chat');
+@@ -68,3 +70,13 @@
+ function deny(reason: AccessDecision['reason']): AccessDecision {
+   return { ok: false, reason };
+ }
++
++// Authenticated SDK metadata only; text/quoted messages cannot grant authority.
++export function commandChatIntake(
++  access: ProfileConfig['access'], chatId: string, senderId: string,
++  senderType: 'user' | 'bot' | undefined,
++): 'ordinary' | 'accept' | 'drop' {
++  const owner = access.commandChats?.[chatId];
++  if (!owner) return 'ordinary';
++  return senderType === 'user' && senderId === owner ? 'accept' : 'drop';
++}
+--- a/src/policy/fingerprint.ts
++++ b/src/policy/fingerprint.ts
+@@ -50,6 +50,7 @@
+     allowedChats: [...access.allowedChats].sort(),
+     allowedUsers: [...access.allowedUsers].sort(),
+     requireMentionInGroup: access.requireMentionInGroup,
++    ...(access.commandChats ? { commandChats: access.commandChats } : {}),
+   });
+ }
+
+--- a/src/bot/channel.ts
++++ b/src/bot/channel.ts
+@@ -1,3 +1,4 @@
++import { commandChatIntake } from '../policy/access';
+ import type {
+   LarkChannel,
+   LarkChannelOptions,
+@@ -547,6 +548,13 @@
+     });
+     return;
+   }
++  const commandChatDecision = commandChatIntake(
++    controls.profileConfig.access, msg.chatId, msg.senderId, senderTypeOf(msg),
++  );
++  if (commandChatDecision === 'drop') {
++    log.info('intake', 'skip-command-chat-non-owner', { chat: msg.chatId.slice(-6) });
++    return;
++  }
+   const preview = msg.content.length > 80 ? `${msg.content.slice(0, 80)}…` : msg.content;
+   // Resolve scope (and underlying chat mode) once at intake — every
+   // downstream consumer keys off these.
+@@ -597,6 +605,7 @@
+   // event reaching here is either targeted or undirected chatter.
+   if (
+     msg.chatType !== 'p2p' &&
++    commandChatDecision !== 'accept' &&
+     getRequireMentionInGroup(controls.cfg) &&
+     !msg.mentionedBot
+   ) {
+@@ -818,7 +827,7 @@
+   // Re-read prefs on every flush so toggling /config mid-stream takes
+   // effect immediately. Cheap object lookups, no allocation when on.
+   const filterForPrefs = (state: RunState): RunState => {
+-    if (getShowToolCalls(controls.cfg)) return state;
++    if (!controls.profileConfig.access.commandChats?.[chatId] && getShowToolCalls(controls.cfg)) return state;
+     return { ...state, blocks: state.blocks.filter((b) => b.kind !== 'tool') };
+   };
+   const cardRenderOptions = callbackAuth
+--- /dev/null
++++ b/tests/unit/policy/command-chat.test.ts
+@@ -0,0 +1,26 @@
++import { describe, it, expect } from 'vitest';
++import { commandChatIntake, canUseGroup } from '../../../src/policy/access';
++import { createDefaultProfileConfig, normalizeProfileConfig } from '../../../src/config/profile-schema';
++import { accessPolicyDigest } from '../../../src/policy/fingerprint';
++
++const profile = createDefaultProfileConfig({ agentKind: 'codex', codex: {binaryPath: '/usr/local/bin/codex'}, accounts: { app: { id: 'cli_test', secret: 'test', tenant: 'feishu' } },
++  access: { commandChats: { oc_center: 'ou_owner' }, allowedChats: ['oc_center'], admins: ['ou_admin'] } });
++describe('dedicated command chat', () => {
++  it('accepts only the authenticated human owner, without requiring mention', () => {
++    expect(commandChatIntake(profile.access, 'oc_center', 'ou_owner', 'user')).toBe('accept');
++    expect(commandChatIntake(profile.access, 'oc_center', 'ou_owner', 'bot')).toBe('drop');
++    expect(commandChatIntake(profile.access, 'oc_center', 'ou_owner', undefined)).toBe('drop');
++    expect(commandChatIntake(profile.access, 'oc_center', 'ou_other', 'user')).toBe('drop');
++    expect(commandChatIntake(profile.access, 'oc_other', 'ou_other', 'user')).toBe('ordinary');
++  });
++  it('cannot bypass the owner restriction through group allowlist, admin or creator', () => {
++    for (const sender of ['ou_admin', 'ou_other', 'ou_creator']) {
++      expect(canUseGroup(profile, { botOwnerId: 'ou_creator', ownerRefreshState: 'ok' }, 'oc_center', sender).ok).toBe(false);
++    }
++  });
++  it('preserves and fingerprints the owner binding and rejects malformed bindings', () => {
++    expect(normalizeProfileConfig(profile).access.commandChats).toEqual({oc_center: 'ou_owner'});
++    expect(accessPolicyDigest(profile.access)).not.toBe(accessPolicyDigest({...profile.access, commandChats: {oc_center: 'ou_other'}}));
++    expect(() => normalizeProfileConfig({...profile, access: {...profile.access, commandChats: {oc_center: ''}}})).toThrow();
++  });
++});

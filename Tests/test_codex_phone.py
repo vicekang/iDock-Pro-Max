@@ -20,6 +20,13 @@ class BridgeClientTests(unittest.TestCase):
             phone.call_tool('phone_sms_send', {'number': '+12025550100', 'body': 'test', 'request_id': 'unique-id'})
             rpc.assert_called_once_with('sms.send', {'number': '+12025550100', 'body': 'test'}, 'unique-id')
 
+    def test_outbound_task_and_request_id_are_scoped_to_dial(self):
+        with patch.object(phone, 'rpc', return_value={'ok': True}) as rpc:
+            phone.call_tool('phone_dial', {'number': '+12025550100', 'ai': True,
+                                         'task': 'Ask whether tomorrow at 3 pm works.', 'request_id': 'one-call'})
+            rpc.assert_called_once_with('call.dial', {'number': '+12025550100', 'ai': True,
+                                         'task': 'Ask whether tomorrow at 3 pm works.'}, 'one-call')
+
     def test_uncertain_delivery_remains_error(self):
         with patch.object(phone, 'rpc', return_value={'ok': False, 'deliveryUncertain': True}):
             result = phone.mcp_response({'method': 'tools/call', 'params': {'name': 'phone_sms_send', 'arguments': {'number': '+12025550100', 'body': 'test', 'request_id': 'id'}}})

@@ -17,6 +17,7 @@ struct CodexArchivedCall: Identifiable, Codable, Equatable {
     var interrupted = false
     var recordingRequested: Bool
     var failure: String?
+    var ownerTask: String?
     var transcript: [CodexCallTranscript] = []
 }
 
@@ -56,10 +57,10 @@ final class CodexCallArchive: ObservableObject {
         } catch { lastError = "无法打开通话文字记录：\(error.localizedDescription)" }
     }
 
-    func begin(id: UUID, number: String, direction: String, recordingRequested: Bool, at date: Date = Date()) {
+    func begin(id: UUID, number: String, direction: String, recordingRequested: Bool, ownerTask: String? = nil, at date: Date = Date()) {
         guard !calls.contains(where: { $0.id == id }) else { return }
         let call = CodexArchivedCall(id: id, number: number, direction: direction, startedAt: date,
-                                    recordingRequested: recordingRequested)
+                                    recordingRequested: recordingRequested, ownerTask: ownerTask)
         calls.insert(call, at: 0); persist(call)
     }
 
