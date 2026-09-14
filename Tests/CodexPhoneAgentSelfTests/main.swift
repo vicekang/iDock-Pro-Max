@@ -12,9 +12,12 @@ struct CodexBridgeError: LocalizedError {
     var onConnectionError: ((Error) -> Void)?
     var onRealtimeEvent: ((String, [String: Any]) -> Void)?
     var texts: [String] = []
+    var realtimeVoices: [String?] = []
     init() { Self.last = self }
     func start(instructions: String, completion: @escaping (Result<Void, Error>) -> Void) { completion(.success(())) }
-    func startRealtime(sdp: String, instructions: String, completion: @escaping (Result<Void, Error>) -> Void) { completion(.success(())) }
+    func startRealtime(sdp: String, instructions: String, voice: String? = nil, completion: @escaping (Result<Void, Error>) -> Void) {
+        realtimeVoices.append(voice); completion(.success(()))
+    }
     func appendRealtimeText(_ text: String) { texts.append(text) }
     func respond(to: String, completion: @escaping (Result<String, Error>) -> Void) { completion(.success("ok")) }
     func stop() {}
@@ -38,9 +41,13 @@ struct CodexBridgeError: LocalizedError {
 
 @main struct Tests {
     @MainActor static func main() async throws {
+        precondition(CodexPhoneVoice(rawValue: "coral") == nil && CodexPhoneVoice(rawValue: "shimmer") == nil,
+                     "V2-only voices must not be offered for a V3 telephone session")
         let agent = CodexPhoneAgent()
         let audio = CodexRealtimeAudio.last!, codex = CodexConversation.last!
-        agent.start(instructions: "test", greeting: "hello", deferGreeting: true)
+        agent.start(instructions: "test", greeting: "hello", deferGreeting: true, voice: .juniper)
+        audio.onOffer?("test sdp")
+        precondition(codex.realtimeVoices.count == 1 && codex.realtimeVoices[0] == "juniper", "The selected voice must reach the actual realtime request")
         let staleConnection = audio.onConnected!
         audio.onConnected?()
         precondition(codex.texts.isEmpty, "prewarming must not speak before telephone activation")
@@ -49,6 +56,8 @@ struct CodexBridgeError: LocalizedError {
         precondition(codex.texts.count == 1, "one greeting per call")
         agent.stop()
         agent.start(instructions: "test", greeting: "next", deferGreeting: true)
+        audio.onOffer?("next sdp")
+        precondition(codex.realtimeVoices.count == 2 && codex.realtimeVoices[1] == nil, "Default voice must omit the override, without leaking the previous call's selection")
         agent.activate(greeting: "next", prerecorded: false)
         staleConnection()
         precondition(codex.texts.count == 1, "an old connection must not activate a new call")

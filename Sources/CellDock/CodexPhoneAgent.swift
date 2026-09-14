@@ -1,5 +1,14 @@
 import Foundation
 
+/// V3 uses the V1 voice family, as enforced by the installed app-server.
+enum CodexPhoneVoice: String, CaseIterable, Identifiable {
+    case automatic = "default"
+    case juniper, maple, spruce, ember, vale, breeze, arbor, sol, cove
+    var id: String { rawValue }
+    var label: String { self == .automatic ? "跟随 Codex 默认音色" : rawValue.capitalized }
+    var protocolValue: String? { self == .automatic ? nil : rawValue }
+}
+
 /// The signed-in Codex app-server owns authentication and GPT-Live sessions.
 /// WebRTC carries telephone audio directly, including turn taking and interruption.
 @MainActor
@@ -24,7 +33,7 @@ final class CodexPhoneAgent {
     private(set) var status = "待机"
 
     func start(instructions: String, greeting: String, deferGreeting: Bool = false,
-               prerecordedOpening: String? = nil) {
+               prerecordedOpening: String? = nil, voice: CodexPhoneVoice = .automatic) {
         stop(); active = true
         requestedGreeting = deferGreeting || prerecordedOpening != nil ? nil : greeting
         let current = generation
@@ -62,7 +71,7 @@ final class CodexPhoneAgent {
         }
         audio.onOffer = { [weak self] sdp in
             guard let self, self.active, self.generation == current else { return }
-            self.codex.startRealtime(sdp: sdp, instructions: prompt) { [weak self] result in
+            self.codex.startRealtime(sdp: sdp, instructions: prompt, voice: voice.protocolValue) { [weak self] result in
                 if case .failure(let error) = result { self?.fail(error.localizedDescription, generation: current) }
             }
         }

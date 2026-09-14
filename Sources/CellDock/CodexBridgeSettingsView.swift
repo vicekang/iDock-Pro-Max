@@ -15,6 +15,11 @@ struct CodexBridgeSettingsView: View {
                 Button("查看通话记录与录音") { showsArchive = true }
                 Text("使用已登录 Codex 的原生实时语音接听和回答，支持打断。单次通话默认最长 10 分钟。")
                     .font(.caption).foregroundStyle(.secondary)
+                Picker("AI 通话音色", selection: Binding(get: { bridge.voice }, set: bridge.setVoice)) {
+                    ForEach(CodexPhoneVoice.allCases) { voice in Text(verbatim: voice.label).tag(voice) }
+                }
+                Text("从下一通电话和语音自检生效，不会改变你录制的开场白。")
+                    .font(.caption).foregroundStyle(.secondary)
                 Button("测试 Codex 原生语音") { bridge.testVoice() }
                 Divider()
                 CodexOpeningSettingsView(opening: bridge.openingAudio, bridge: bridge)

@@ -2,7 +2,7 @@
 
 基于 [CellDock](https://github.com/celldock/celldock-for-mac) 的个人非商业改造。CellDock 管理 DJI 4G 模块、SIM、短信、电话和蜂窝网络；Codex 使用现有 ChatGPT 登录处理指令及原生实时语音。
 
-0.4.4 支持[接通后播放本地开场白、导入自己的录音与提前准备 AI](INSTANT_CALL_OPENING.zh-CN.md)。
+0.4.5 支持[接通后播放本地开场白、导入自己的录音、选择 AI 音色与提前准备 AI](INSTANT_CALL_OPENING.zh-CN.md)。
 
 ## 使用
 
@@ -45,7 +45,7 @@ flowchart LR
 | 查找历史 AI 电话、文字和原声录音路径 | `phone_calls_list`、`phone_call_get` |
 | 蜂窝关闭、保持连接或优先上网 | `phone_network_set` |
 | 单次用模块获取网页 | `phone_cellular_fetch` |
-| 自动接听、角色、开场白 | `phone_agent_configure` |
+| 自动接听、角色、开场白、AI 音色 | `phone_agent_configure` |
 | 原生语音自检、本地开场白状态 | `phone_voice_test`、`phone_opening_status` |
 
 注册 MCP（Python 3 仅用于工具适配，不运行语音模型）：

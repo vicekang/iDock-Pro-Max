@@ -10,6 +10,7 @@ final class CodexPhoneBridge: ObservableObject {
     @Published private(set) var status = "尚未启动"
     @Published private(set) var autoAnswer = UserDefaults.standard.bool(forKey: "codexBridge.autoAnswer")
     @Published private(set) var recordAICalls = UserDefaults.standard.object(forKey: "codexBridge.recordCalls") as? Bool ?? true
+    @Published private(set) var voice = CodexPhoneVoice(rawValue: UserDefaults.standard.string(forKey: "codexBridge.voice") ?? "default") ?? .automatic
     let archive = CodexCallArchive.shared
     private var archivedCallID: UUID?
     private weak var state: AppState?
@@ -129,7 +130,7 @@ final class CodexPhoneBridge: ObservableObject {
     func testVoice() {
         guard state?.call.hasCall != true, !diagnosticBusy else { status = "请在无通话时测试。"; return }
         diagnosticBusy = true; status = "正在测试 Codex 原生语音"
-        voiceDiagnostics.run(pcm: nil) { [weak self] result in
+        voiceDiagnostics.run(pcm: nil, voice: voice) { [weak self] result in
             self?.diagnosticBusy = false
             switch result {
             case .success: self?.status = "Codex 原生语音已通过测试"
@@ -145,6 +146,10 @@ final class CodexPhoneBridge: ObservableObject {
 
     func setRecordAICalls(_ enabled: Bool) {
         recordAICalls = enabled; UserDefaults.standard.set(enabled, forKey: "codexBridge.recordCalls")
+    }
+
+    func setVoice(_ value: CodexPhoneVoice) {
+        voice = value; UserDefaults.standard.set(value.rawValue, forKey: "codexBridge.voice")
     }
 
     private func finishArchive(interrupted: Bool = false) {
@@ -170,7 +175,7 @@ final class CodexPhoneBridge: ObservableObject {
         background.note("voice.prewarm")
         // Start the process, WebKit and WebRTC before ATA/UAC completes.
         agent.start(instructions: instructions, greeting: greeting, deferGreeting: true,
-                    prerecordedOpening: preparedOpening?.text)
+                    prerecordedOpening: preparedOpening?.text, voice: voice)
         guard agent.active else {
             aiCall = false; state?.routeCodexAudio(false)
             throw CodexBridgeError(agent.status)
@@ -284,9 +289,9 @@ final class CodexPhoneBridge: ObservableObject {
 
     private func snapshot() -> [String: Any] {
         guard let state else { return [:] }
-        return ["version": "0.4.4-codex", "opening": openingSnapshot(), "portability": portabilitySnapshot(), "call": ["phase": state.call.phase.rawValue,
+        return ["version": "0.4.5-codex", "opening": openingSnapshot(), "portability": portabilitySnapshot(), "call": ["phase": state.call.phase.rawValue,
                  "number": state.call.number ?? "", "audioActive": state.call.audioActive, "ai": aiCall],
-                "agent": ["status": status, "autoAnswer": autoAnswer, "recordCalls": recordAICalls, "voiceBackend": "codex-native-realtime", "codexInstalled": CodexConversation.executable != nil],
+                "agent": ["status": status, "autoAnswer": autoAnswer, "recordCalls": recordAICalls, "voice": voice.rawValue, "voiceBackend": "codex-native-realtime", "codexInstalled": CodexConversation.executable != nil],
                 "recording": ["phase": String(describing: state.callRecordings.phase), "count": state.callRecordings.records.count,
                               "error": state.callRecordings.lastError ?? "", "archiveError": archive.lastError ?? ""],
                 "background": ["mode": background.mode.rawValue, "error": background.lastError ?? ""],
@@ -410,6 +415,13 @@ final class CodexPhoneBridge: ObservableObject {
                 guard let raw = params["mode"] as? Int, let mode = CellularNetworkMode(rawValue: raw), !state.isChangingNetwork else { throw CodexBridgeError("网络模式无效或正在切换。") }
                 state.setCodexNetworkMode(mode); ok(["accepted": true, "verify": "status"])
             case "agent.configure":
+                var requestedVoice: CodexPhoneVoice?
+                if let raw = params["voice"] {
+                    guard let name = raw as? String, let selected = CodexPhoneVoice(rawValue: name) else {
+                        throw CodexBridgeError("请选择设置中列出的 Codex 音色。")
+                    }
+                    requestedVoice = selected
+                }
                 for name in ["instructions", "greeting"] {
                     if let text = params[name] as? String {
                         guard !text.isEmpty, text.count <= 4000 else { throw CodexBridgeError("提示词不能为空或超过 4000 字。") }
@@ -420,6 +432,7 @@ final class CodexPhoneBridge: ObservableObject {
                 }
                 if let enabled = params["autoAnswer"] as? Bool { setAutoAnswer(enabled) }
                 if let enabled = params["recordCalls"] as? Bool { setRecordAICalls(enabled) }
+                if let requestedVoice { setVoice(requestedVoice) }
                 for name in ["instructions", "greeting"] {
                     if let text = params[name] as? String { UserDefaults.standard.set(text, forKey: "codexBridge.\(name)") }
                 }
@@ -441,7 +454,7 @@ final class CodexPhoneBridge: ObservableObject {
                 if method == "agent.openingTest", opening == nil {
                     diagnosticBusy = false; throw CodexBridgeError("请先启用并导入开场音频。")
                 }
-                voiceDiagnostics.run(pcm: pcm, opening: opening) { [weak self] result in
+                voiceDiagnostics.run(pcm: pcm, opening: opening, voice: voice) { [weak self] result in
                     self?.diagnosticBusy = false
                     switch result {
                     case .success(let value): ok(value)

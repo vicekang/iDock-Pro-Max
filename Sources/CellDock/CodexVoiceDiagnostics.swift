@@ -20,7 +20,8 @@ final class CodexVoiceDiagnostics {
     private var firstOutputAt: TimeInterval?
     private var connectedAt: TimeInterval?
 
-    func run(pcm: Data?, opening: CodexOpeningClip? = nil, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+    func run(pcm: Data?, opening: CodexOpeningClip? = nil, voice: CodexPhoneVoice = .automatic,
+             completion: @escaping (Result<[String: Any], Error>) -> Void) {
         guard finish == nil else { completion(.failure(CodexBridgeError("语音测试正在运行。"))); return }
         generation = UUID(); let current = generation
         finish = completion; samples = 0; audibleSamples = 0; transcripts = []; connected = false
@@ -78,7 +79,7 @@ final class CodexVoiceDiagnostics {
                     self.complete(.failure(CodexBridgeError("收到声音，但测试语音未产生转写。"))); return
                 }
                 var result: [String: Any] = ["backend": "codex-gpt-live-webrtc", "connected": self.connected,
-                    "sampleRate": 8000, "receivedSamples": self.samples, "audibleSamples": self.audibleSamples,
+                    "sampleRate": 8000, "voice": voice.rawValue, "receivedSamples": self.samples, "audibleSamples": self.audibleSamples,
                     "transcripts": self.transcripts]
                 if let opening {
                     result["openingSeconds"] = opening.duration
@@ -93,7 +94,7 @@ final class CodexVoiceDiagnostics {
         let deadline = DispatchWorkItem { [weak self] in self?.complete(.failure(CodexBridgeError("原生语音测试超时。"))) }
         timeout = deadline; DispatchQueue.main.asyncAfter(deadline: .now() + 65, execute: deadline)
         agent.start(instructions: "这是隔离的音频自检，并未接通真实电话。你是 AI 电话助理。用中文简短对话；听到预约要求时复述预约时间。不要调用工具。",
-                    greeting: "你好，Codex 原生语音已连接。", prerecordedOpening: opening?.text)
+                    greeting: "你好，Codex 原生语音已连接。", prerecordedOpening: opening?.text, voice: voice)
     }
 
     private func captureOutput(_ pcm: Data) {
