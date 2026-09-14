@@ -139,6 +139,14 @@ struct ModemUSBConfiguration: Equatable {
     // Kept as a source-compatible alias for existing setup and diagnostics.
     static let maVoTarget = cellDockFullTarget
 
+    static let cellDockPortableTarget = ModemUSBConfiguration(
+        vendorID: 0x2C7C, productID: 0x0125,
+        diagnosticEnabled: true, nmeaEnabled: true, atPortEnabled: true,
+        modemEnabled: true, networkEnabled: true, adbEnabled: true, audioEnabled: false
+    )
+
+    var isCellDockPortableTarget: Bool { self == Self.cellDockPortableTarget }
+
     static let maVoTargetWithoutADB = ModemUSBConfiguration(
         vendorID: 0x2C7C,
         productID: 0x0125,
@@ -238,6 +246,7 @@ struct ModemSnapshot: Equatable {
     /// session is available, not merely that IMS was enabled in settings.
     var volteSessionAvailable: Bool?
     var usbConfiguration: ModemUSBConfiguration?
+    var portableMacAudioReady = false
     var endpointDescription: String?
     var lastError: String?
 
@@ -341,6 +350,8 @@ struct ModemSnapshot: Equatable {
         }
         guard let usbConfiguration else { return .inspecting }
         let supportsRequiredRuntime = usbConfiguration.isCellDockTarget || (
+            usbConfiguration.isCellDockPortableTarget && hardwareFamily == .baiwangInjectedVoice
+        ) || (
             hardwareFamily == .quectelNativeVoice &&
                 usbConfiguration.supportsNativeQuectelRuntime
         )

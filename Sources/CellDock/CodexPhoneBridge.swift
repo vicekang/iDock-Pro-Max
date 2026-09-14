@@ -197,7 +197,7 @@ final class CodexPhoneBridge: ObservableObject {
 
     private func snapshot() -> [String: Any] {
         guard let state else { return [:] }
-        return ["version": "0.4.2-codex", "call": ["phase": state.call.phase.rawValue,
+        return ["version": "0.4.3-codex", "portability": portabilitySnapshot(), "call": ["phase": state.call.phase.rawValue,
                  "number": state.call.number ?? "", "audioActive": state.call.audioActive, "ai": aiCall],
                 "agent": ["status": status, "autoAnswer": autoAnswer, "recordCalls": recordAICalls, "voiceBackend": "codex-native-realtime", "codexInstalled": CodexConversation.executable != nil],
                 "recording": ["phase": String(describing: state.callRecordings.phase), "count": state.callRecordings.records.count,
@@ -208,12 +208,24 @@ final class CodexPhoneBridge: ObservableObject {
                 "unreadSMS": state.unreadCount, "lastEvent": eventSequence]
     }
 
+    private func portabilitySnapshot() -> [String: Any] {
+        guard let state else { return [:] }
+        return ["supported": state.modem.hardwareFamily == .baiwangInjectedVoice &&
+                    ModulePortabilityPolicy.supports(firmware: state.modem.firmwareVersion),
+                "enabled": state.modem.usbConfiguration?.isCellDockPortableTarget == true,
+                "macAudioReady": state.modem.portableMacAudioReady,
+                "firmware": state.modem.firmwareVersion ?? "",
+                "usbConfiguration": state.modem.usbConfiguration?.compactDescription ?? "",
+                "connection": state.modem.state.rawValue,
+                "iphoneAcceptance": "pending-physical-test"]
+    }
+
     private func handle(_ request: [String: Any], completion: @escaping ([String: Any]) -> Void) {
         guard let state, let method = request["method"] as? String else {
             completion(["ok": false, "error": "Missing method"]); return
         }
         let params = request["params"] as? [String: Any] ?? [:]
-        let mutating = ["call.dial", "call.answer", "call.hangup", "call.dtmf", "sms.send", "network.set", "agent.configure"].contains(method)
+        let mutating = ["call.dial", "call.answer", "call.hangup", "call.dtmf", "sms.send", "network.set", "agent.configure", "portability.configure"].contains(method)
         let id = request["id"] as? String ?? ""
         let fingerprint = SHA256.hash(data: (try? JSONSerialization.data(withJSONObject: ["method": method, "params": params], options: [.sortedKeys])) ?? Data()).map { String(format: "%02x", $0) }.joined()
         if mutating {
@@ -237,6 +249,17 @@ final class CodexPhoneBridge: ObservableObject {
         do {
             switch method {
             case "status": ok(snapshot())
+            case "portability.status": ok(portabilitySnapshot())
+            case "portability.configure":
+                guard !diagnosticBusy, !aiCall, let enabled = params["enabled"] as? Bool else {
+                    throw CodexBridgeError("请提供 enabled 布尔值，并等待通话及诊断结束。")
+                }
+                state.configurePortability(enabled: enabled) { result in
+                    switch result {
+                    case .success(let detail): finish(["ok": true, "result": ["detail": detail ?? ""]])
+                    case .failure(let error): finish(["ok": false, "error": error])
+                    }
+                }
             case "background.status": ok(background.snapshot)
             case "calls.list":
                 let number = params["number"] as? String ?? ""

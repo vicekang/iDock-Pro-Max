@@ -193,3 +193,5 @@ xcrun clang \
   -o "$ROOT/.build/self-tests/CEuiccCoreSelfTests"
 
 "$ROOT/.build/self-tests/CEuiccCoreSelfTests"
+
+python3 -m unittest discover -s "$ROOT/Tests" -p "test_module_portability.py" -v
