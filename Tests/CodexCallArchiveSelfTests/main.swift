@@ -10,7 +10,7 @@ struct ArchiveTests {
         archive.begin(id: first, number: "test-incoming", direction: "incoming", recordingRequested: true)
         archive.append(callID: first, role: "caller", text: "第一通的内容")
         archive.finish(callID: first)
-        archive.begin(id: second, number: "test-outgoing", direction: "outgoing", recordingRequested: false)
+        archive.begin(id: second, number: "test-outgoing", direction: "outgoing", recordingRequested: false, ownerTask: "仅询问明天下午三点的会议安排")
         archive.append(callID: second, role: "assistant", text: "第二通的内容")
         archive.recordFailure(callID: second, message: "simulated failure")
         // Simulate process death: reload before the second call is finished.
@@ -21,6 +21,7 @@ struct ArchiveTests {
         precondition(!finished.interrupted && finished.transcript.count == 1)
         precondition(finished.transcript[0].text == "第一通的内容")
         precondition(recovered.interrupted && recovered.endedAt != nil)
+        precondition(finished.ownerTask == nil && recovered.ownerTask == "仅询问明天下午三点的会议安排")
         precondition(recovered.transcript[0].text == "第二通的内容" && recovered.failure == "simulated failure")
         let directoryPermissions = try FileManager.default.attributesOfItem(atPath: root.path)[.posixPermissions] as? Int
         let filePermissions = try FileManager.default.attributesOfItem(atPath: reloaded.fileURL(for: recovered).path)[.posixPermissions] as? Int
