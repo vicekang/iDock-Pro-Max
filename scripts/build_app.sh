@@ -144,6 +144,7 @@ cp "$ROOT/Resources/sim.svg" "$STAGE_APP/Contents/Resources/sim.svg"
 cp "$ROOT/Resources/sim1.svg" "$STAGE_APP/Contents/Resources/sim1.svg"
 cp "$ROOT/Resources/celldock-module-vertical.svg" "$STAGE_APP/Contents/Resources/celldock-module-vertical.svg"
 cp -R "$ROOT/Resources/Localization/"*.lproj "$STAGE_APP/Contents/Resources/"
+cp -R "$ROOT/Resources/CallOpening" "$STAGE_APP/Contents/Resources/"
 mkdir -p "$STAGE_APP/Contents/Resources/Sounds"
 cp "$ROOT/Resources/Sounds/"* "$STAGE_APP/Contents/Resources/Sounds/"
 if [[ -d "$ROOT/Resources/ModuleVoice" ]]; then

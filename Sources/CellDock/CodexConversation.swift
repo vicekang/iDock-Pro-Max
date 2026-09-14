@@ -106,12 +106,15 @@ final class CodexConversation {
         deadline = timeout; DispatchQueue.main.asyncAfter(deadline: .now() + 45, execute: timeout)
     }
 
-    func startRealtime(sdp: String, instructions: String, completion: @escaping (Result<Void, Error>) -> Void) {
+    func startRealtime(sdp: String, instructions: String, voice: String? = nil,
+                       completion: @escaping (Result<Void, Error>) -> Void) {
         guard let threadID else { completion(.failure(CodexBridgeError("Codex 尚未就绪。"))); return }
-        request("thread/realtime/start", ["threadId": threadID, "outputModality": "audio",
+        var params: [String: Any] = ["threadId": threadID, "outputModality": "audio",
             "version": "v3", "transport": ["type": "webrtc", "sdp": sdp],
             "includeStartupContext": false, "prompt": instructions,
-            "realtimeEndInstructions": "The telephone call has ended. Do not perform any actions or send messages."])
+            "realtimeEndInstructions": "The telephone call has ended. Do not perform any actions or send messages."]
+        if let voice { params["voice"] = voice }
+        request("thread/realtime/start", params)
         { result in completion(result.map { _ in () }) }
     }
 

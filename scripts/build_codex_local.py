@@ -69,11 +69,12 @@ def main():
     run(['ditto', args.base_app, output])
     shutil.copy2(build / 'CellDock', output / 'Contents/MacOS/CellDock')
     info = plistlib.loads((ROOT / 'Resources/Info.plist').read_bytes())
-    info.update(CFBundleShortVersionString='0.4.3-codex', CFBundleVersion='110', CellDockCodexBridge=True,
+    info.update(CFBundleShortVersionString='0.4.5-codex', CFBundleVersion='112', CellDockCodexBridge=True,
                 SUEnableAutomaticChecks=False, SUAutomaticallyUpdate=False)
     (output / 'Contents/Info.plist').write_bytes(plistlib.dumps(info))
     for localization in (ROOT / 'Resources/Localization').glob('*.lproj'):
         shutil.copytree(localization, output / 'Contents/Resources' / localization.name, dirs_exist_ok=True)
+    shutil.copytree(ROOT / 'Resources/CallOpening', output / 'Contents/Resources/CallOpening', dirs_exist_ok=True)
     entitlements = plistlib.loads((ROOT / 'Resources/CellDock.entitlements').read_bytes())
     if args.library_validation_exception:
         entitlements['com.apple.security.cs.disable-library-validation'] = True

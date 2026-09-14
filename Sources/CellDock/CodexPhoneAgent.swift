@@ -1,5 +1,14 @@
 import Foundation
 
+/// V3 uses the V1 voice family, as enforced by the installed app-server.
+enum CodexPhoneVoice: String, CaseIterable, Identifiable {
+    case automatic = "default"
+    case juniper, maple, spruce, ember, vale, breeze, arbor, sol, cove
+    var id: String { rawValue }
+    var label: String { self == .automatic ? "跟随 Codex 默认音色" : rawValue.capitalized }
+    var protocolValue: String? { self == .automatic ? nil : rawValue }
+}
+
 /// The signed-in Codex app-server owns authentication and GPT-Live sessions.
 /// WebRTC carries telephone audio directly, including turn taking and interruption.
 @MainActor
@@ -10,23 +19,43 @@ final class CodexPhoneAgent {
     var onFailure: ((String) -> Void)?
     var onConnected: (() -> Void)?
     var onStage: ((String) -> Void)?
+    var onInterruption: (() -> Void)?
     private let codex = CodexConversation()
     private let audio = CodexRealtimeAudio()
     private var generation = UUID()
     private var startupDeadline: DispatchWorkItem?
+    private var connected = false
+    private var requestedGreeting: String?
+    private var didRequestGreeting = false
+    private var earlyInput = CodexEarlyInput()
+    private var inputFeeder: Timer?
     private(set) var active = false
     private(set) var status = "待机"
 
-    func start(instructions: String, greeting: String) {
+    func start(instructions: String, greeting: String, deferGreeting: Bool = false,
+               prerecordedOpening: String? = nil, voice: CodexPhoneVoice = .automatic) {
         stop(); active = true
+        requestedGreeting = deferGreeting || prerecordedOpening != nil ? nil : greeting
         let current = generation
         setStatus("正在连接 Codex 原生语音")
-        let prompt = instructions + "\n这是通过 4G 模块接通的真实电话。直接听取对方音频并用声音自然回答，允许对方打断。你没有电脑操作工具。开场说：" + greeting
+        let openingPrompt: String
+        if let prerecordedOpening {
+            openingPrompt = "本机正在通过电话播放预录开场白，已经介绍 AI 助理身份并询问来意。" +
+                "你不要重复开场白，不要主动出声确认，不要说好的或请稍等。等待来电者说话后直接回应其来意。" +
+                "对方在开场录音期间说话也要听取。开场录音文字供理解：\(prerecordedOpening)"
+        } else {
+            openingPrompt = "先准备音频并保持安静。收到电话接通通知时才说开场白。开场白：" + greeting
+        }
+        let prompt = instructions + "\n这是通过 4G 模块连接的电话。直接听取对方音频并用声音自然回答，允许对方打断。你没有电脑操作工具。" + openingPrompt
         audio.onPCM = { [weak self] data in
             guard let self, self.active, self.generation == current else { return }
             self.onPCM?(data)
         }
         audio.onError = { [weak self] message in self?.fail(message, generation: current) }
+        audio.onInterruption = { [weak self] in
+            guard let self, self.active, self.generation == current else { return }
+            self.onInterruption?()
+        }
         audio.onStage = { [weak self] stage in
             guard let self, self.active, self.generation == current else { return }
             self.onStage?(stage)
@@ -34,13 +63,15 @@ final class CodexPhoneAgent {
         audio.onConnected = { [weak self] in
             guard let self, self.active, self.generation == current else { return }
             self.startupDeadline?.cancel(); self.startupDeadline = nil
+            self.connected = true
             self.setStatus("Codex 原生语音通话中")
-            self.codex.appendRealtimeText("电话已经接通，请说开场白，然后等对方说话。")
+            self.sendGreetingIfReady()
+            self.drainEarlyInput(generation: current)
             self.onConnected?()
         }
         audio.onOffer = { [weak self] sdp in
             guard let self, self.active, self.generation == current else { return }
-            self.codex.startRealtime(sdp: sdp, instructions: prompt) { [weak self] result in
+            self.codex.startRealtime(sdp: sdp, instructions: prompt, voice: voice.protocolValue) { [weak self] result in
                 if case .failure(let error) = result { self?.fail(error.localizedDescription, generation: current) }
             }
         }
@@ -75,11 +106,44 @@ final class CodexPhoneAgent {
     func stop() {
         active = false; generation = UUID()
         startupDeadline?.cancel(); startupDeadline = nil
+        connected = false; requestedGreeting = nil; didRequestGreeting = false
+        inputFeeder?.invalidate(); inputFeeder = nil; earlyInput.reset()
         audio.stop(); codex.onRealtimeEvent = nil; codex.onConnectionError = nil
         codex.stop(); setStatus("待机")
     }
 
-    func receive(_ pcm: Data) { if active { audio.receive(pcm) } }
+    func activate(greeting: String, prerecorded: Bool) {
+        guard active, !prerecorded else { return }
+        requestedGreeting = greeting; sendGreetingIfReady()
+    }
+
+    private func sendGreetingIfReady() {
+        guard connected, !didRequestGreeting, let requestedGreeting else { return }
+        didRequestGreeting = true
+        codex.appendRealtimeText("电话已经接通。请说：\(requestedGreeting)。然后等对方说话。")
+    }
+
+    func receive(_ pcm: Data) {
+        guard active else { return }
+        if connected, inputFeeder == nil { audio.receive(pcm); return }
+        let hadOverflow = earlyInput.overflowed
+        earlyInput.append(pcm)
+        if !hadOverflow, earlyInput.overflowed { onStage?("caller-startup-buffer-overflow") }
+    }
+
+    private func drainEarlyInput(generation current: UUID) {
+        guard earlyInput.hasSpeech else { earlyInput.reset(); return }
+        let timer = Timer(timeInterval: 0.02, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.active, self.generation == current else { return }
+                if let frame = self.earlyInput.nextFrame() { self.audio.receive(frame) }
+                if self.earlyInput.isEmpty {
+                    self.inputFeeder?.invalidate(); self.inputFeeder = nil; self.earlyInput.reset()
+                }
+            }
+        }
+        inputFeeder = timer; RunLoop.main.add(timer, forMode: .common)
+    }
 
     func testCodex(_ text: String, instructions: String, completion: @escaping (Result<String, Error>) -> Void) {
         guard !active else { completion(.failure(CodexBridgeError("通话期间不能运行诊断。"))); return }

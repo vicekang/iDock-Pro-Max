@@ -11,6 +11,7 @@ final class CodexRealtimeAudio: NSObject, WKScriptMessageHandler, WKNavigationDe
     var onOffer: ((String) -> Void)?
     var onPCM: ((Data) -> Void)?
     var onConnected: (() -> Void)?
+    var onInterruption: (() -> Void)?
     var onError: ((String) -> Void)?
     private var webView: WKWebView?
     private var loaded = false
@@ -73,6 +74,7 @@ final class CodexRealtimeAudio: NSObject, WKScriptMessageHandler, WKNavigationDe
         case "offer": loaded = true; if let sdp = body["sdp"] as? String { onOffer?(sdp) }
         case "pcm": if let encoded = body["data"] as? String, let data = Data(base64Encoded: encoded) { onPCM?(data) }
         case "connected": onConnected?()
+        case "interruption": onInterruption?()
         case "error": onError?(body["message"] as? String ?? "实时音频连接失败。")
         default: break
         }
@@ -148,7 +150,14 @@ final class CodexRealtimeAudio: NSObject, WKScriptMessageHandler, WKNavigationDe
         const output=this.context.createMediaStreamDestination(); this.node.connect(output);
         this.pc=new RTCPeerConnection({iceServers:[]});
         this.pc.addTrack(output.stream.getAudioTracks()[0],output.stream);
-        this.pc.createDataChannel('oai-events');
+        this.events=this.pc.createDataChannel('oai-events');
+        this.events.onmessage=({data})=>{
+          try {
+            const event=JSON.parse(data);
+            if(event.type==='input_audio_buffer.speech_started' || event.type==='output_audio_buffer.cleared')
+              send({type:'interruption'});
+          } catch (_) { /* Media must continue if a non-JSON extension arrives. */ }
+        };
         this.pc.ontrack=event => {
           this.remote=this.context.createMediaStreamSource(new MediaStream([event.track]));
           this.remote.connect(this.node);
