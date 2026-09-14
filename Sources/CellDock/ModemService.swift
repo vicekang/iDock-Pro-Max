@@ -1103,6 +1103,64 @@ final class ModemService {
         }
     }
 
+    func configurePortability(enabled: Bool, completion: @escaping (ModemActionResult) -> Void) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            func finish(_ result: ModemActionResult) {
+                DispatchQueue.main.async { completion(result) }
+            }
+            guard self.isOpen, let modem = self.modem,
+                  celldock_modem_vendor_id(modem) == 0x2C7C,
+                  celldock_modem_product_id(modem) == 0x0125,
+                  self.connectedModemMatchesExpectedIdentity(),
+                  self.snapshot.hardwareFamily == .baiwangInjectedVoice,
+                  ModulePortabilityPolicy.supports(firmware: self.snapshot.firmwareVersion) else {
+                finish(.failure("当前模块或固件尚未验证自动切换支持，未修改配置。")); return
+            }
+            guard !self.callSnapshot.hasCall, !self.hasPendingMediaCleanup, !self.callActionInFlight,
+                  case .empty = self.queryCallPresence() else {
+                finish(.failure("通话期间或无法确认通话状态时不能切换 USB 模式。")); return
+            }
+            let query = self.command("AT+QCFG=\"USBCFG\"", timeout: 5_000)
+            let net = self.command("AT+QCFG=\"usbnet\"", timeout: 3_000)
+            guard query.isSuccess, net.isSuccess,
+                  let current = ATResponseParser.parseUSBConfiguration(query.output),
+                  current.isCellDockTarget || current.isCellDockPortableTarget,
+                  ATResponseParser.parseUSBNetMode(net.output) == 1 else {
+                finish(.failure("USB 配置不在已验证范围内，或 ECM 尚未开启；未执行写入。")); return
+            }
+            let target: ModemUSBConfiguration = enabled ? .cellDockPortableTarget : .cellDockFullTarget
+            guard current != target else {
+                finish(.success("模块已经使用所选模式。")); return
+            }
+            do {
+                try ModulePortabilityRuntime.saveBackup(
+                    imei: self.snapshot.moduleIMEI ?? "", firmware: self.snapshot.firmwareVersion ?? "",
+                    configuration: current.usbcfgWriteCommand, target: target.usbcfgWriteCommand)
+            } catch { finish(.failure(error.localizedDescription)); return }
+            let write = self.command(target.usbcfgWriteCommand, timeout: 8_000)
+            if write.isTransportAmbiguous {
+                self.beginExpectedModuleRestart()
+                finish(.failure("写入响应不明确，未重复写入；重连后请核对自动切换状态。")); return
+            }
+            guard write.isSuccess else {
+                finish(.failure(write.error ?? "模块拒绝修改 USB 模式。")); return
+            }
+            let verify = self.command("AT+QCFG=\"USBCFG\"", timeout: 5_000)
+            if verify.isTransportAmbiguous {
+                self.beginExpectedModuleRestart()
+                finish(.failure("模块在读回前重新枚举，未重复写入；重连后请核对自动切换状态。")); return
+            }
+            guard verify.isSuccess, ATResponseParser.parseUSBConfiguration(verify.output) == target else {
+                finish(.failure("USB 配置读回不匹配，未重启模块；请重新连接后检查。")); return
+            }
+            self.snapshot.usbConfiguration = target
+            _ = self.command("AT+CFUN=1,1", timeout: 1_000)
+            self.beginExpectedModuleRestart()
+            finish(.success(enabled ? "已保存手机上网模式，正在重连并恢复 Mac 通话。" : "已恢复 Mac 固定模式，正在重连。"))
+        }
+    }
+
     func configureECM(completion: @escaping (ModemActionResult) -> Void) {
         queue.async { [weak self] in
             guard let self, self.isOpen, let modem = self.modem else {
@@ -2805,6 +2863,12 @@ final class ModemService {
             }
             .joined(separator: " ")
         snapshot.firmwareVersion = firmwareIdentity.isEmpty ? nil : firmwareIdentity
+        // Read the persistent boot profile before preparing UAC. In portable
+        // mode only the current Mac USB session gets an audio interface.
+        let usbNet = command("AT+QCFG=\"usbnet\"", timeout: 3_000)
+        snapshot.usbNetMode = ATResponseParser.parseUSBNetMode(usbNet.output)
+        let usbConfiguration = command("AT+QCFG=\"USBCFG\"", timeout: 3_000)
+        snapshot.usbConfiguration = ATResponseParser.parseUSBConfiguration(usbConfiguration.output)
         let pcmCapability: CommandResult? = hardwareFamily == .quectelNativeVoice
             ? command("AT+QPCMV=?", timeout: 3_000)
             : nil
@@ -2823,6 +2887,21 @@ final class ModemService {
         case .qdcModuleBridge:
             do {
                 let runtime = try ModuleVoiceRuntime(locationID: modemLocationID)
+                if snapshot.usbConfiguration?.isCellDockPortableTarget == true {
+                    guard snapshot.usbNetMode == 1,
+                          ModulePortabilityPolicy.supports(firmware: snapshot.firmwareVersion) else {
+                        throw ModulePortabilityRuntime.Failure(message: "当前固件尚未验证自动恢复 Mac 声卡。")
+                    }
+                    // Initialization has already confirmed an empty CLCC.
+                    // Clear a stale route before checking audio_enable=0,
+                    // including recovery after a powered unplug during a call.
+                    try runtime.stopBridge()
+                    if try runtime.preparePortableMacSession() {
+                        beginExpectedModuleRestart()
+                        return
+                    }
+                    snapshot.portableMacAudioReady = true
+                }
                 _ = try runtime.prepare()
                 // CLCC was confirmed empty before initialization. Clear any
                 // helper/route left behind by a prior app crash or USB-only
@@ -2915,10 +2994,6 @@ final class ModemService {
         }
 
         refreshSIMSnapshot()
-        let usbNet = command("AT+QCFG=\"usbnet\"", timeout: 3_000)
-        snapshot.usbNetMode = ATResponseParser.parseUSBNetMode(usbNet.output)
-        let usbConfiguration = command("AT+QCFG=\"USBCFG\"", timeout: 3_000)
-        snapshot.usbConfiguration = ATResponseParser.parseUSBConfiguration(usbConfiguration.output)
         let ims = command("AT+QCFG=\"ims\"", timeout: 3_000)
         snapshot.imsMode = ATResponseParser.parseIMSMode(ims.output)
         snapshot.volteSessionAvailable = ATResponseParser.parseVoLTESessionAvailable(ims.output)

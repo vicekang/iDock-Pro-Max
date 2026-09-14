@@ -2041,6 +2041,18 @@ final class AppState: ObservableObject {
         }
     }
 
+    func configurePortability(enabled: Bool, completion: @escaping (ModemActionResult) -> Void = { _ in }) {
+        guard !isConfiguringECM, !isChangingCall else {
+            completion(.failure("模块正在处理另一项操作，请稍后重试。")); return
+        }
+        isConfiguringECM = true
+        modemService.configurePortability(enabled: enabled) { [weak self] result in
+            self?.isConfiguringECM = false
+            self?.show(result)
+            completion(result)
+        }
+    }
+
     func convertDJIModuleIdentity() {
         guard !isConvertingModuleIdentity else { return }
         isConvertingModuleIdentity = true

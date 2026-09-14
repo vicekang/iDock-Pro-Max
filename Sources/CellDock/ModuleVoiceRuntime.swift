@@ -65,6 +65,10 @@ final class ModuleVoiceRuntime {
         }
     }
 
+    func preparePortableMacSession() throws -> Bool {
+        try ModulePortabilityRuntime.prepareMacSession(controller: controller)
+    }
+
     func recoverECMNetworkLink() throws {
         let command =
             "test -d /sys/class/net/ecm0 || { echo '模块缺少 ecm0'; exit 20; }; " +
