@@ -5,7 +5,7 @@ import SwiftUI
 enum CommunicationUI {
     static let railWidth: CGFloat = 76
     static let sidebarWidth: CGFloat = 280
-    static let sidebarMinimumWidth: CGFloat = 210
+    static let sidebarMinimumWidth: CGFloat = 260
     static let sidebarMaximumWidth: CGFloat = 420
 
     static func listTimestamp(_ date: Date, now: Date = Date()) -> String {
@@ -23,12 +23,11 @@ enum CommunicationUI {
     }
 }
 
+/// Native split navigation supplies the floating Liquid Glass sidebar on
+/// macOS 26. Do not place a legacy sidebar material underneath its content.
 struct ResizableCommunicationSplit<Sidebar: View, Detail: View>: View {
     @Binding var sidebarWidth: CGFloat
-    @State private var dragStartWidth: CGFloat?
-    @State private var liveSidebarWidth: CGFloat
-    @State private var isDragging = false
-    @State private var isDividerHovered = false
+    @State private var initialSidebarWidth: CGFloat
     private let sidebar: Sidebar
     private let detail: Detail
 
@@ -38,78 +37,109 @@ struct ResizableCommunicationSplit<Sidebar: View, Detail: View>: View {
         @ViewBuilder detail: () -> Detail
     ) {
         _sidebarWidth = sidebarWidth
-        _liveSidebarWidth = State(initialValue: sidebarWidth.wrappedValue)
+        _initialSidebarWidth = State(initialValue: max(CommunicationUI.sidebarMinimumWidth, sidebarWidth.wrappedValue))
         self.sidebar = sidebar()
         self.detail = detail()
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            // Preserve the preferred width, but never squeeze the reading pane
-            // when the user narrows the window. The preference returns on resize.
-            let visibleSidebarWidth = min(liveSidebarWidth, max(210, geometry.size.width - 420))
-            HStack(spacing: 0) {
-                sidebar.frame(width: visibleSidebarWidth)
+        NavigationSplitView(columnVisibility: .constant(.all)) {
+            sidebar
+                .frame(
+                    minWidth: CommunicationUI.sidebarMinimumWidth,
+                    idealWidth: initialSidebarWidth,
+                    maxWidth: CommunicationUI.sidebarMaximumWidth,
+                    maxHeight: .infinity
+                )
+                .navigationSplitViewColumnWidth(
+                    min: CommunicationUI.sidebarMinimumWidth,
+                    ideal: initialSidebarWidth,
+                    max: CommunicationUI.sidebarMaximumWidth
+                )
+                .background {
+                    CommunicationSplitWidthObserver(width: $sidebarWidth)
+                }
+        } detail: {
+            detail.frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .navigationSplitViewStyle(.balanced)
+        .toolbar(removing: .sidebarToggle)
+    }
+}
 
-                detail
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .overlay(alignment: .leading) {
-                        Color.clear
-                            .frame(width: 9)
-                            .contentShape(Rectangle())
-                            .onHover(perform: dividerHoverChanged)
-                            .gesture(resizeGesture(startingAt: visibleSidebarWidth))
+/// Native pane widths include the system glass inset. Observe the split view,
+/// rather than saving SwiftUI's narrower content measurement on every new page.
+private struct CommunicationSplitWidthObserver: NSViewRepresentable {
+    @Binding var width: CGFloat
+
+    func makeNSView(context: Context) -> SplitWidthView {
+        let view = SplitWidthView()
+        view.preferredWidth = width
+        view.onResize = { width = $0 }
+        return view
+    }
+
+    func updateNSView(_ view: SplitWidthView, context: Context) {
+        view.preferredWidth = width
+        view.onResize = { width = $0 }
+    }
+
+    final class SplitWidthView: NSView {
+        var preferredWidth: CGFloat = CommunicationUI.sidebarWidth
+        var onResize: ((CGFloat) -> Void)?
+        private weak var observedSplit: NSSplitView?
+        private var observer: NSObjectProtocol?
+        private var restoring = false
+
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard window != nil else { return }
+            DispatchQueue.main.async { [weak self] in self?.attach() }
+        }
+
+        private func attach() {
+            var ancestor = superview
+            while let view = ancestor {
+                if let split = view as? NSSplitView, split.isVertical,
+                   split.arrangedSubviews.count >= 2 {
+                    guard observedSplit !== split else { return }
+                    if let observer { NotificationCenter.default.removeObserver(observer) }
+                    observedSplit = split
+                    restoring = true
+                    split.layoutSubtreeIfNeeded()
+                    let available = max(CommunicationUI.sidebarMinimumWidth, split.bounds.width - 420 - split.dividerThickness)
+                    let requested = min(CommunicationUI.sidebarMaximumWidth, available,
+                                        max(CommunicationUI.sidebarMinimumWidth, preferredWidth))
+                    split.setPosition(requested, ofDividerAt: 0)
+                    observer = NotificationCenter.default.addObserver(
+                        forName: NSSplitView.didResizeSubviewsNotification,
+                        object: split, queue: .main
+                    ) { [weak self] _ in
+                        MainActor.assumeIsolated { self?.saveWidth() }
                     }
-            }
-        }
-        .onChange(of: sidebarWidth) { _, newWidth in
-            guard !isDragging else { return }
-            liveSidebarWidth = clamped(newWidth)
-        }
-        .onDisappear {
-            if isDividerHovered || isDragging {
-                NSCursor.arrow.set()
-            }
-        }
-    }
-
-    private func resizeGesture(startingAt visibleWidth: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 0, coordinateSpace: .global)
-            .onChanged { value in
-                let start = dragStartWidth ?? visibleWidth
-                if dragStartWidth == nil {
-                    dragStartWidth = start
-                    isDragging = true
-                    NSCursor.resizeLeftRight.set()
+                    DispatchQueue.main.async { [weak self] in self?.restoring = false }
+                    return
                 }
-                var transaction = Transaction()
-                transaction.animation = nil
-                withTransaction(transaction) {
-                    liveSidebarWidth = clamped(start + value.translation.width)
-                }
+                ancestor = view.superview
             }
-            .onEnded { _ in
-                sidebarWidth = liveSidebarWidth
-                dragStartWidth = nil
-                isDragging = false
-                (isDividerHovered ? NSCursor.resizeLeftRight : NSCursor.arrow).set()
-            }
-    }
-
-    private func dividerHoverChanged(_ hovering: Bool) {
-        isDividerHovered = hovering
-        if hovering || isDragging {
-            NSCursor.resizeLeftRight.set()
-        } else {
-            NSCursor.arrow.set()
         }
-    }
 
-    private func clamped(_ width: CGFloat) -> CGFloat {
-        min(
-            CommunicationUI.sidebarMaximumWidth,
-            max(CommunicationUI.sidebarMinimumWidth, width)
-        )
+        private func saveWidth() {
+            guard !restoring, let split = observedSplit,
+                  split.window?.inLiveResize != true,
+                  let pane = split.arrangedSubviews.first else { return }
+            let measured = pane.frame.width
+            guard measured >= CommunicationUI.sidebarMinimumWidth,
+                  measured <= CommunicationUI.sidebarMaximumWidth,
+                  abs(measured - preferredWidth) > 1 else { return }
+            DispatchQueue.main.async { [weak self] in self?.onResize?(measured) }
+        }
+
+        deinit {
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+        }
     }
 }
 
@@ -119,7 +149,11 @@ private struct CommunicationSearchFieldModifier: ViewModifier {
             .textFieldStyle(.plain)
             .padding(.horizontal, 10)
             .frame(height: 32)
-            .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 8))
+            .adaptiveGlassSurface(
+                cornerRadius: 16,
+                treatment: .clear,
+                isInteractive: true
+            )
     }
 }
 
@@ -173,19 +207,15 @@ private struct CommunicationModuleFloatingCard: View {
 }
 
 extension View {
-    /// Uses the same quiet, rounded selection treatment as the Settings sidebar.
-    func communicationSelectionHighlight(_ isSelected: Bool) -> some View {
+    /// Native List selection owns focus, active/inactive color and contrast.
+    /// Keep only content insets here; a second fill produces a double outline.
+    func communicationListRowInsets() -> some View {
         padding(.horizontal, 8)
             .padding(.vertical, 2)
-            .background {
-                if isSelected {
-                    IDockSelectionSurface(cornerRadius: 8)
-                }
-            }
     }
 
     func communicationSidebarMaterial() -> some View {
-        background { IDockWindowBackdrop() }
+        self
     }
 
     func communicationSearchField() -> some View {
@@ -204,8 +234,7 @@ extension View {
         modifier(CommunicationModuleFloatingSidebarModifier())
     }
 
-    /// Kept as the common hook for communication lists. Selection visuals are
-    /// drawn by each row so macOS does not cover them with NSTableView styling.
+    /// Kept as the common hook for native communication list selection.
     func communicationEmphasizedSelection() -> some View {
         self
     }
@@ -229,8 +258,6 @@ extension View {
 struct CommunicationGlassTabs<Selection: Hashable>: View {
     let items: [(Selection, String)]
     @Binding var selection: Selection
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var selectionNamespace
 
     var body: some View {
         Picker("", selection: $selection) {

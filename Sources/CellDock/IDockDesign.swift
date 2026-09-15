@@ -6,33 +6,13 @@ enum IDockBrand {
     static let releasesURL = URL(string: "https://github.com/vicekang/celldock-codex/releases")!
 }
 
-/// Window backing sits beneath the glass navigation, never above it.
+/// Keep legacy vibrancy out of the native sidebar's material hierarchy.
 struct IDockWindowBackdrop: View {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
     var body: some View {
-        Group {
-            if reduceTransparency {
-                Color(nsColor: .windowBackgroundColor)
-            } else {
-                IDockWindowMaterial()
-            }
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
+        Color(nsColor: .windowBackgroundColor)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
     }
-}
-
-private struct IDockWindowMaterial: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = .sidebar
-        view.blendingMode = .behindWindow
-        view.state = .followsWindowActiveState
-        return view
-    }
-
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }
 
 /// A quiet reading surface, distinct from the floating glass control layer.
@@ -74,5 +54,6 @@ struct IDockGroupBoxStyle: GroupBoxStyle {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .adaptiveTranslucentCard(cornerRadius: 12, padding: 18)
+        .accessibilityElement(children: .contain)
     }
 }

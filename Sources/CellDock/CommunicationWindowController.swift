@@ -80,6 +80,7 @@ final class PhoneWindowModel: ObservableObject {
     ) {
         if number != nil || section != nil || callRecordID != nil || simModuleID != nil {
             setFullCallPresentation(false)
+            pendingListFocusSection = nil
         }
         if let section { selection = section }
         if let callRecordID {
@@ -102,6 +103,9 @@ final class PhoneWindowModel: ObservableObject {
 
 @MainActor
 final class MessagesWindowModel: ObservableObject {
+    // Keyed by both module and address through MessageConversation.ID.
+    // Retain drafts while changing pages, without writing message content to disk.
+    @Published var conversationDrafts: [MessageConversation.ID: String] = [:]
     @Published private(set) var requestSerial = 0
     @Published private(set) var composeSerial = 0
     @Published private(set) var requestedMessageID: SMSMessage.ID?
@@ -203,7 +207,7 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
         destination: String? = nil
     ) {
         messagesModel.present(messageID: messageID, destination: destination)
-        phoneModel.activateFromRail(.messages)
+        phoneModel.present(number: nil, section: .messages)
         show(.phone)
     }
 

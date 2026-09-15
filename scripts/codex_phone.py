@@ -108,7 +108,7 @@ def mcp_response(message):
     method, params = message.get('method'), message.get('params') or {}
     if method == 'initialize':
         return {'protocolVersion': '2024-11-05', 'capabilities': {'tools': {}},
-                'serverInfo': {'name': 'celldock-phone', 'version': '0.5.1'}}
+                'serverInfo': {'name': 'celldock-phone', 'version': '0.5.2'}}
     if method == 'ping':
         return {}
     if method == 'tools/list':

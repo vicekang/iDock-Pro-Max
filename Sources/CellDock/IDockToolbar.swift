@@ -6,7 +6,7 @@ final class IDockToolbarController: NSObject, NSToolbarDelegate {
     private let model: PhoneWindowModel
     private var communicationGroup: NSToolbarItemGroup?
     private var utilityGroup: NSToolbarItemGroup?
-    private let communication: [PhoneWindowSection] = [.messages, .recents, .recordings]
+    private let communication: [PhoneWindowSection] = [.messages, .recents, .contacts, .recordings]
     private let utilities: [PhoneWindowSection] = [.proxy, .sim, .settings]
     private let communicationID = NSToolbarItem.Identifier("iDock.communication")
     private let utilitiesID = NSToolbarItem.Identifier("iDock.utilities")
@@ -25,7 +25,7 @@ final class IDockToolbarController: NSObject, NSToolbarDelegate {
     }
 
     func updateSelection() {
-        let selected: PhoneWindowSection = [.dialer, .contacts].contains(model.selection)
+        let selected: PhoneWindowSection = model.selection == .dialer
             ? .recents : model.selection
         for (index, section) in communication.enumerated() {
             communicationGroup?.setSelected(section == selected, at: index)

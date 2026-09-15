@@ -42,7 +42,7 @@ final class CodexPhoneBridge: ObservableObject {
     private var seenMessages = Set<String>()
     private var receipts: [String: [String: Any]] = [:]
     private var receiptOrder: [String] = []
-    private var diagnosticBusy = false
+    @Published private(set) var diagnosticBusy = false
     private(set) var directory: URL
     var instructions: String {
         UserDefaults.standard.string(forKey: "codexBridge.instructions") ?? Self.defaultInstructions
@@ -135,7 +135,8 @@ final class CodexPhoneBridge: ObservableObject {
     }
 
     func testVoice() {
-        guard state?.call.hasCall != true, !diagnosticBusy else { status = "请在无通话时测试。"; return }
+        guard !diagnosticBusy else { return }
+        guard state?.call.hasCall != true else { status = "请在无通话时测试。"; return }
         diagnosticBusy = true; status = "正在测试 Codex 原生语音"
         voiceDiagnostics.run(pcm: nil, voice: voice) { [weak self] result in
             self?.diagnosticBusy = false

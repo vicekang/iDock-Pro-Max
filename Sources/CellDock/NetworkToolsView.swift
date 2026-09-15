@@ -106,15 +106,15 @@ private struct VoWiFiView: View {
                 )
                 .frame(maxHeight: .infinity)
             } else {
-                List {
+                List(selection: $selectedModuleID) {
                     ForEach(availableModules) { module in
                         VoWiFiModuleRow(
                             module: module,
                             state: controller.states[module.id] ?? .checking
                         )
-                        .communicationSelectionHighlight(selectedModuleID == module.id)
+                        .communicationListRowInsets()
                         .contentShape(Rectangle())
-                        .onTapGesture { selectedModuleID = module.id }
+                        .tag(module.id)
                         .accessibilityAddTraits(
                             selectedModuleID == module.id ? .isSelected : []
                         )

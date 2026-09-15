@@ -723,6 +723,7 @@ struct CellDockSettingsView: View {
             }
             Spacer(minLength: 16)
             accessory()
+                .fixedSize(horizontal: true, vertical: false)
         }
     }
 

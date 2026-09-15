@@ -37,7 +37,7 @@ struct RecordingsLibraryView: View {
         .onChange(of: focusFirstItemRequest) { _, requested in
             if requested { handleFocusFirstItemRequest() }
         }
-        .onChange(of: recordings.records.map(\.id)) { _, _ in
+        .onChange(of: filteredRecordingRecords.map(\.id)) { _, _ in
             selectFirstRecordingIfNeeded()
         }
         .onChange(of: selectedRecordingID) { _, _ in
@@ -98,11 +98,10 @@ struct RecordingsLibraryView: View {
             .padding(.horizontal, 14)
             .padding(.bottom, 10)
 
-            List(filteredRecordingRecords) { record in
+            List(filteredRecordingRecords, selection: $selectedRecordingID) { record in
                 recordingRow(record)
-                    .communicationSelectionHighlight(selectedRecordingID == record.id)
+                    .communicationListRowInsets()
                     .contentShape(Rectangle())
-                    .onTapGesture { selectedRecordingID = record.id }
                     .accessibilityAddTraits(selectedRecordingID == record.id ? .isSelected : [])
                     .tag(record.id)
                     .contextMenu {
@@ -128,6 +127,15 @@ struct RecordingsLibraryView: View {
             .communicationInitialListFocus($listFocused)
             .scrollContentBackground(.hidden)
             .communicationSidebarScrollEdgeEffect()
+            .overlay {
+                if filteredRecordingRecords.isEmpty {
+                    if searchText.isEmpty {
+                        ContentUnavailableView(L10n.tr("暂无通话录音"), systemImage: "waveform")
+                    } else {
+                        ContentUnavailableView.search(text: searchText)
+                    }
+                }
+            }
         }
         .communicationSidebarColumnStyle()
         .communicationModuleFloatingSidebar()
@@ -138,7 +146,8 @@ struct RecordingsLibraryView: View {
             RecordingDirectionBadge(
                 direction: record.direction,
                 size: 38,
-                iconSize: 16
+                iconSize: 16,
+                isSelected: selectedRecordingID == record.id
             )
 
             VStack(alignment: .leading, spacing: 3) {
@@ -227,10 +236,10 @@ struct RecordingsLibraryView: View {
 
     private func selectFirstRecordingIfNeeded() {
         if let selectedRecordingID,
-           recordings.records.contains(where: { $0.id == selectedRecordingID }) {
+           filteredRecordingRecords.contains(where: { $0.id == selectedRecordingID }) {
             return
         }
-        selectedRecordingID = recordings.records.first?.id
+        selectedRecordingID = filteredRecordingRecords.first?.id
     }
 
     private func handleFocusFirstItemRequest() {
@@ -298,15 +307,16 @@ private struct RecordingDirectionBadge: View {
     let direction: CallDirection
     let size: CGFloat
     let iconSize: CGFloat
+    var isSelected = false
 
     var body: some View {
         ZStack {
             Circle()
-                .fill(directionColor.opacity(0.14))
+                .fill((isSelected ? Color.primary : directionColor).opacity(0.10))
 
             Image(systemName: directionIcon)
                 .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(directionColor)
+                .foregroundStyle(isSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(directionColor))
         }
         .frame(width: size, height: size)
         .accessibilityLabel(
@@ -340,7 +350,7 @@ private struct RecordingDetailPane: View {
 
     var body: some View {
         ScrollView {
-            AdaptiveGlassContainer(spacing: 16) {
+            AdaptiveGlassContainer(spacing: 4) {
                 VStack(alignment: .leading, spacing: 16) {
                     identityHeader
 
@@ -435,44 +445,60 @@ private struct RecordingDetailPane: View {
     }
 
     private var actionBar: some View {
-        HStack(spacing: 8) {
-            Button(action: onRename) {
-                Label("重新命名", systemImage: "pencil")
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                renameButton
+                exportButton
+                revealButton
+                Spacer(minLength: 12)
+                deleteButton
             }
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) { renameButton; exportButton }
+                HStack(spacing: 12) {
+                    revealButton
+                    Spacer(minLength: 12)
+                    deleteButton
+                }
+            }
+        }
+        .controlSize(.regular)
+        .buttonBorderShape(.capsule)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var renameButton: some View {
+        Button(action: onRename) { Label("重新命名", systemImage: "pencil") }
             .adaptiveGlassButton()
             .disabled(appState.isPresentationPrivacyEnabled)
             .help(appState.isPresentationPrivacyEnabled
-                ? L10n.tr("关闭演示隐私保护后可重命名")
-                : L10n.tr("重新命名录音"))
+                ? L10n.tr("关闭演示隐私保护后可重命名") : L10n.tr("重新命名录音"))
+            .fixedSize()
+    }
 
-            Button(action: onExport) {
-                Label("导出", systemImage: "square.and.arrow.up")
-            }
+    private var exportButton: some View {
+        Button(action: onExport) { Label("导出", systemImage: "square.and.arrow.up") }
             .adaptiveGlassButton()
             .disabled(appState.isPresentationPrivacyEnabled)
             .help(appState.isPresentationPrivacyEnabled
-                ? L10n.tr("关闭演示隐私保护后可导出")
-                : L10n.tr("导出录音"))
+                ? L10n.tr("关闭演示隐私保护后可导出") : L10n.tr("导出录音"))
+            .fixedSize()
+    }
 
-            Button(action: onReveal) {
-                Label("在访达中显示", systemImage: "folder")
-            }
+    private var revealButton: some View {
+        Button(action: onReveal) { Label("在访达中显示", systemImage: "folder") }
             .adaptiveGlassButton()
             .disabled(appState.isPresentationPrivacyEnabled)
             .help(appState.isPresentationPrivacyEnabled
-                ? L10n.tr("关闭演示隐私保护后可在访达中显示")
-                : L10n.tr("在访达中显示"))
+                ? L10n.tr("关闭演示隐私保护后可在访达中显示") : L10n.tr("在访达中显示"))
+            .fixedSize()
+    }
 
-            Spacer(minLength: 12)
-
-            Button(role: .destructive, action: onDelete) {
-                Label("删除录音", systemImage: "trash")
-            }
+    private var deleteButton: some View {
+        Button(role: .destructive, action: onDelete) { Label("删除录音", systemImage: "trash") }
             .adaptiveGlassButton()
             .tint(.red)
-        }
-        .controlSize(.small)
-        .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize()
     }
 
     private var headerMetadata: String {
@@ -565,10 +591,12 @@ private struct RecordingPlayerCard: View {
                 Image(systemName: "gobackward.15")
                     .font(.system(size: 16, weight: .medium))
                     .frame(width: playbackControlSize, height: playbackControlSize)
+                    .contentShape(Circle())
             }
-            .adaptiveGlassButton()
+            .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .help(L10n.tr("后退 15 秒"))
+            .accessibilityLabel(L10n.tr("后退 15 秒"))
 
             Button {
                 recordings.play(record)
@@ -576,10 +604,14 @@ private struct RecordingPlayerCard: View {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 16, weight: .semibold))
                     .frame(width: playbackControlSize, height: playbackControlSize)
+                    .contentShape(Circle())
             }
-            .adaptiveGlassButton(.accented)
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .background(Color.accentColor, in: Circle())
             .buttonBorderShape(.circle)
             .help(isPlaying ? L10n.tr("暂停") : L10n.tr("播放"))
+            .accessibilityLabel(isPlaying ? L10n.tr("暂停") : L10n.tr("播放"))
 
             Button {
                 ensurePrepared()
@@ -588,10 +620,12 @@ private struct RecordingPlayerCard: View {
                 Image(systemName: "goforward.15")
                     .font(.system(size: 16, weight: .medium))
                     .frame(width: playbackControlSize, height: playbackControlSize)
+                    .contentShape(Circle())
             }
-            .adaptiveGlassButton()
+            .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .help(L10n.tr("前进 15 秒"))
+            .accessibilityLabel(L10n.tr("前进 15 秒"))
 
             Button {
                 recordings.setPlaybackRate(nextPlaybackRate)
@@ -599,10 +633,13 @@ private struct RecordingPlayerCard: View {
                 Text(playbackRateLabel)
                     .font(.caption.weight(.semibold).monospacedDigit())
                     .frame(width: playbackControlSize, height: playbackControlSize)
+                    .contentShape(Circle())
             }
-            .adaptiveGlassButton()
+            .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .help(L10n.tr("切换播放速度"))
+            .accessibilityLabel(L10n.tr("切换播放速度"))
+            .accessibilityValue(playbackRateLabel)
 
             Button {
                 showsVolume.toggle()
@@ -610,20 +647,26 @@ private struct RecordingPlayerCard: View {
                 Image(systemName: volumeIcon)
                     .font(.system(size: 16, weight: .medium))
                     .frame(width: playbackControlSize, height: playbackControlSize)
+                    .contentShape(Circle())
             }
-            .adaptiveGlassButton()
+            .buttonStyle(.plain)
             .buttonBorderShape(.circle)
             .help(L10n.tr("调整音量"))
+            .accessibilityLabel(L10n.tr("调整音量"))
             .popover(isPresented: $showsVolume, arrowEdge: .bottom) {
                 HStack(spacing: 10) {
                     Image(systemName: "speaker.fill")
                     Slider(value: volumeBinding, in: 0 ... 1)
+                        .accessibilityLabel(L10n.tr("调整音量"))
+                        .accessibilityValue("\(Int(recordings.playbackVolume * 100))%")
                     Image(systemName: "speaker.wave.3.fill")
                 }
                 .padding(14)
                 .frame(width: 230)
             }
         }
+        .adaptiveGlassSurface(cornerRadius: 32, padding: 8, treatment: .regular)
+        .fixedSize(horizontal: true, vertical: false)
         .frame(maxWidth: .infinity)
     }
 
@@ -687,6 +730,7 @@ private struct RecordingPlayerCard: View {
 }
 
 private struct RecordingWaveformView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let waveform: CallRecordingWaveformData
     let progress: Double
     let currentTime: TimeInterval
@@ -829,7 +873,7 @@ private struct RecordingWaveformView: View {
             let sampleProgress = Double(index) / Double(max(targetCount - 1, 1))
             let barColor = sampleProgress <= resolvedProgress
                 ? color
-                : color.opacity(0.32)
+                : color.opacity(colorScheme == .dark ? 0.72 : 0.44)
             context.stroke(
                 bar,
                 with: .color(barColor),

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CodexBridgeSettingsView: View {
+    @EnvironmentObject private var appState: AppState
     @ObservedObject var bridge: CodexPhoneBridge
     @State private var showsArchive = false
     var body: some View {
@@ -39,7 +40,13 @@ struct CodexBridgeSettingsView: View {
                 }
                 Text("从下一通电话和语音自检生效，不会改变你录制的开场白。")
                     .font(.caption).foregroundStyle(.secondary)
-                Button("测试 Codex 原生语音") { bridge.testVoice() }
+                Button { bridge.testVoice() } label: {
+                    HStack(spacing: 8) {
+                        if bridge.diagnosticBusy { ProgressView().controlSize(.small) }
+                        Text(L10n.tr(bridge.diagnosticBusy ? "正在测试 Codex 原生语音" : "测试 Codex 原生语音"))
+                    }
+                }
+                .disabled(bridge.diagnosticBusy || appState.call.hasCall)
             } label: { Text("声音") }
             GroupBox {
                 CodexOpeningSettingsView(opening: bridge.openingAudio, bridge: bridge)
@@ -61,12 +68,9 @@ private struct CodexOpeningSettingsView: View {
                 VStack(alignment: .leading, spacing: 10) {
                 Text("来电时提前准备 AI，通话音频就绪后先播放本机录音，再由 AI 听取并回应对方。提前生成的回复会等开场白结束再播放。")
                     .font(.caption).foregroundStyle(.secondary)
-                HStack {
-                    Button(opening.importing ? "正在导入…" : "导入我的录音") { opening.chooseFile() }
-                        .disabled(opening.importing)
-                    Button("试听 / 停止") { opening.preview(recording: bridge.recordAICalls) }
-                        .disabled(!opening.enabled)
-                    if opening.customName != nil { Button("使用默认开场白") { opening.useDefault() } }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) { openingActions }.fixedSize()
+                    VStack(alignment: .leading, spacing: 12) { openingActions }
                 }
                 if opening.customName != nil {
                     TextField("开场白文字（可选，帮助 AI 理解已说内容）", text: Binding(
@@ -80,6 +84,18 @@ private struct CodexOpeningSettingsView: View {
                 if let error = opening.lastError { Text(verbatim: error).font(.caption).foregroundStyle(.orange) }
                 }.padding(.top, 8)
             }
+        }
+        .onDisappear { opening.stopPreview() }
+    }
+
+    @ViewBuilder private var openingActions: some View {
+        Button(opening.importing ? "正在导入…" : "导入我的录音") { opening.chooseFile() }
+            .disabled(opening.importing)
+        Button("试听 / 停止") { opening.preview(recording: bridge.recordAICalls) }
+            .disabled(!opening.enabled)
+        if opening.customName != nil {
+            Button("使用默认开场白") { opening.useDefault() }
+                .disabled(opening.importing)
         }
     }
 }

@@ -1,11 +1,11 @@
-# iDock Pro Max 0.5.1
+# iDock Pro Max 0.5.2
 
 基于 `141d0b4`，包含最新的手机网络切换、独立音色与本地开场白、飞书电话中心代码。
 
 ## 界面与品牌
 
 - App、菜单栏、安装路径和四种语言中的产品名为 **iDock Pro Max**。
-- 使用 macOS 26 的原生 `glassEffect`、玻璃按钮与材质容器；原生 AppKit 工具栏、连续分栏和统一选择态。
+- 使用 macOS 26 的原生 `glassEffect`、玻璃按钮与材质容器；原生 AppKit 工具栏、系统浮动侧栏和原生列表选择态。
 - 内容阅读层保持足够对比度，避免大段文字叠在多层玻璃上。遵循系统外观、减少透明度与减少动态效果；macOS 14/15 回退到系统材质。
 - 新图标的可重现矢量生成脚本：`scripts/render_idock_icon.swift`。
 - 更新页面指向本项目的 GitHub 发布页面，保留 CellDock 开源归属说明。
@@ -41,7 +41,7 @@ python3 scripts/build_codex_local.py --base-app '/Applications/iDock Pro Max.app
 | --- | --- | --- |
 | [CodeEdit](https://www.codeedit.app/) | 工具栏和连续内容面；统一导航密度 | `IDockToolbar.swift`，去除全高图标轨道 |
 | [Latest / Max](https://max.codes/latest/) | 直接的列表与详情关系、稳定阅读背景 | 去掉列表和详情的全高圆角容器；该截图是布局参考，不作为 Liquid Glass 示例 |
-| [Swift with Majid](https://swiftwithmajid.com/2025/07/16/glassifying-custom-swiftui-views/) | 玻璃响应背景内容，控制层与阅读层分开 | 搜索、列表选择使用简单填色，录音正文不再叠玻璃 |
+| [Swift with Majid](https://swiftwithmajid.com/2025/07/16/glassifying-custom-swiftui-views/) | 玻璃响应背景内容，控制层与阅读层分开 | 搜索使用原生玻璃，列表使用系统选择态，录音正文保持稳定阅读面 |
 | [Apple AppKit 新设计](https://developer.apple.com/videos/play/wwdc2025/310/) | 系统工具栏负责玻璃、控件分组与窗口圆角协调 | 真正的 `NSToolbar` / `NSToolbarItemGroup`，保留原生溢出与无障碍行为 |
 
 设置页将 AI 接听独立成分类；后台说明、自定义开场白按需展开。类别使用 42pt 单行布局，内容分组半径 12pt，列表选择半径 8pt，常规卡片去掉阴影。录音页保留声纹与主要播放控件，取消套在联系人、播放器上的大玻璃框。
@@ -81,3 +81,25 @@ SHA-256：`3298e168f6b50f256d008dea1aeff4f0b1abe4c942bb54dff6772806d325f7ed`。
 - 本次没有复测真实蜂窝通话；USB 模组当前未连接。
 
 0.5.1 安装包：`iDock-Pro-Max-0.5.1-115-arm64.zip`。SHA-256：`1c5f01b12e0fe5afcba3bd64ea583fa60e84ce5cd7c0c37ce5445f5d740b093d`。
+
+
+### 0.5.2 原生玻璃与按钮修订（构建 123）
+
+根据用户圈出的灰色侧栏，移除旧 `NSVisualEffectView.sidebar` 背景，使用 `NavigationSplitView` 的系统侧栏，避免旧磨砂材料覆盖 macOS 26 的 Liquid Glass。搜索使用原生 clear glass；录音播放按钮共享一块原生玻璃控制面，避免五个独立阴影造成割裂。
+
+依据：[Apple — Build a SwiftUI app with the new design](https://developer.apple.com/videos/play/wwdc2025/323/)。导航和材质行为由原生组件负责；阅读正文保持对比度。
+
+本轮逐页检查也修复了实际交互问题：
+
+- 侧栏切换页面后保留拖动宽度，设置与 SIM 页避免挤成竖排文字；搜索、模块菜单跟随侧栏宽度。
+- 移除列表选中态的重复底色，恢复系统键盘选择与焦点反馈。
+- 恢复主工具栏的通讯录入口，并统一通讯录的侧栏和搜索布局。
+- 新短信第一次点击可正确进入编辑；现有会话的草稿按模组和收件人隔离，页面切换后仍保留于内存。
+- “发短信”和“查看录音”保留指定目标，避免被自动选择第一项的逻辑覆盖；指定通话不再错误进入“未接来电”筛选。
+- 录音筛选后不会残留不匹配的详情；播放控件使用共享玻璃面，操作按钮分开，小窗口自动换行；深色模式提高未播放声纹的可见度。
+- 语音测试显示进行中并防止重复触发；开场白按钮按可用宽度排列，关闭或离开试听时停止播放；声音选项网格随窗口调整。
+
+逐页实测范围与未验证项见 [界面验收记录](IDOCK_UI_AUDIT.zh-CN.md)。
+
+
+0.5.2 安装包：`iDock-Pro-Max-0.5.2-123-arm64.zip`。SHA-256：`694440aae33710c04de256510f492405f95c4f5840b0304bcf26f9901790f674`。
