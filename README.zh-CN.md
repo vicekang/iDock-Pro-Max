@@ -1,8 +1,12 @@
 # iDock Pro Max
 
-基于 CellDock 的个人通信中心，支持 Codex 原生实时语音与 Liquid Glass 界面。定制版的[安装与验证说明](docs/IDOCK_PRO_MAX.zh-CN.md)。
+原生 macOS 个人通信中心，通过兼容的 USB 蜂窝模组实现电话、短信与蜂窝上网，集成 Codex 实时语音和 Apple Liquid Glass 界面。基于 CellDock 改造，保留原有应用标识和本机数据。
 
-以下保留上游 CellDock 项目文档。
+[下载预览版](https://github.com/vicekang/iDock-Pro-Max/releases) · [安装与验证说明](https://github.com/vicekang/iDock-Pro-Max/blob/codex/idock-liquid-glass/docs/IDOCK_PRO_MAX.zh-CN.md) · [逐页界面验收记录](https://github.com/vicekang/iDock-Pro-Max/blob/codex/idock-liquid-glass/docs/IDOCK_UI_AUDIT.zh-CN.md)
+
+当前 iDock 开发分支为 `codex/idock-liquid-glass`。继续遵守 CellDock 原有非商业许可证及第三方声明。
+
+## 上游 CellDock 项目文档
 
 ---
 
@@ -10,13 +14,11 @@
 
 > **0.4.5：**来电时提前准备 Codex，接通后先播放本地开场白，支持导入自己的录音和选择后续 AI 音色。[使用与验证边界](docs/INSTANT_CALL_OPENING.zh-CN.md)。保留 0.4.3 的 [Mac/iPhone 自动切换实验功能](docs/MAC_IPHONE_AUTO_SWITCH.zh-CN.md)。
 
-> **CellDock Codex 版（0.4.5，个人实验分支）**：新增本机 MCP/命令行电话桥接，使用已有 ChatGPT 登录，将电话音频直接接入 Codex 原生 GPT-Live 实时语音，无需额外识别模型或 OpenAI API Key。[安装、使用与验证说明](docs/CODEX_PHONE.zh-CN.md)。保留上游非商业许可证及第三方声明；本地打包版本停止上游自动更新。
-
 <p align="center">
   <img src="Resources/app_icon.png" width="128" height="128" alt="CellDock 图标">
 </p>
 
-<h1 align="center">CellDock</h1>
+<h2 align="center">CellDock</h2>
 
 <p align="center">
   在 Mac 上使用蜂窝网络、短信和电话。

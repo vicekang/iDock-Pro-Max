@@ -3,7 +3,7 @@ import SwiftUI
 
 enum IDockBrand {
     static let name = "iDock Pro Max"
-    static let releasesURL = URL(string: "https://github.com/vicekang/celldock-codex/releases")!
+    static let releasesURL = URL(string: "https://github.com/vicekang/iDock-Pro-Max/releases")!
 }
 
 /// Keep legacy vibrancy out of the native sidebar's material hierarchy.
