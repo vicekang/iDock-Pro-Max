@@ -8,7 +8,7 @@ public enum CellDockNetworkIPC {
     /// Bump whenever either the helper or its installed VoWiFi runtime changes;
     /// the identity mismatch is what makes the app run the authenticated
     /// installer and replace both root-owned executables atomically.
-    public static let helperBuildVersion = 15
+    public static let helperBuildVersion = 16
     public static let helperIdentity = "CellDock Network Helper/\(helperBuildVersion)"
     public static let helperLabel = "app.celldock.mac.network.helper"
     public static let helperExecutableName = "CellDockNetworkHelper"

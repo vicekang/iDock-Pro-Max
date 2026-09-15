@@ -186,7 +186,7 @@ struct NetworkHelperInstaller {
     }
 
     private var isRunningFromAllowedAppLocation: Bool {
-        let expectedPath = "/Applications/CellDock.app"
+        let expectedPath = "/Applications/iDock Pro Max.app"
         let standardizedPath = Bundle.main.bundleURL.standardizedFileURL.path
         return standardizedPath == expectedPath && canonical(standardizedPath) == expectedPath
     }

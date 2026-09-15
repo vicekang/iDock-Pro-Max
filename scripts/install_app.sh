@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT="${0:A:h:h}"
-SOURCE_APP="${CELLDOCK_APP_SOURCE:-${MAVO_APP_SOURCE:-$ROOT/dist/CellDock.app}}"
-DESTINATION_APP="/Applications/CellDock.app"
-LEGACY_APP="/Applications/MaVo.app"
+SOURCE_APP="${CELLDOCK_APP_SOURCE:-${MAVO_APP_SOURCE:-$ROOT/outputs/iDock Pro Max.app}}"
+DESTINATION_APP="/Applications/iDock Pro Max.app"
+LEGACY_APP="/Applications/CellDock.app"
 LAUNCH_AFTER_INSTALL="${1:-}"
 
 [[ -d "$SOURCE_APP" ]] || {
@@ -14,7 +14,7 @@ LAUNCH_AFTER_INSTALL="${1:-}"
 codesign --verify --deep --strict "$SOURCE_APP"
 
 STAGE_ROOT="$(mktemp -d /Applications/.CellDock-install.XXXXXX)"
-STAGE_APP="$STAGE_ROOT/CellDock.app"
+STAGE_APP="$STAGE_ROOT/iDock Pro Max.app"
 BACKUP_APP=""
 LEGACY_BACKUP_APP=""
 INSTALL_COMPLETE=false
@@ -40,11 +40,12 @@ ditto "$SOURCE_APP" "$STAGE_APP"
 xattr -cr "$STAGE_APP"
 codesign --verify --deep --strict "$STAGE_APP"
 
+pkill -x "iDock Pro Max" >/dev/null 2>&1 || true
 pkill -x CellDock >/dev/null 2>&1 || true
 pkill -x MaVo >/dev/null 2>&1 || true
 
 if [[ -e "$LEGACY_APP" ]]; then
-  LEGACY_BACKUP_APP="/Applications/MaVo.previous.brand-migration.$(date +%Y%m%d-%H%M%S).app"
+  LEGACY_BACKUP_APP="/Applications/CellDock.previous.brand-migration.$(date +%Y%m%d-%H%M%S).app"
   mv -- "$LEGACY_APP" "$LEGACY_BACKUP_APP"
 fi
 if [[ -e "$DESTINATION_APP" ]]; then
@@ -55,16 +56,16 @@ mv -- "$STAGE_APP" "$DESTINATION_APP"
 INSTALL_COMPLETE=true
 
 codesign --verify --deep --strict "$DESTINATION_APP"
-print "Installed CellDock: $DESTINATION_APP"
+print "Installed iDock Pro Max: $DESTINATION_APP"
 if [[ -n "$BACKUP_APP" ]]; then
   print "Previous app backup: $BACKUP_APP"
 fi
 if [[ -n "$LEGACY_BACKUP_APP" ]]; then
-  print "Previous MaVo backup: $LEGACY_BACKUP_APP"
+  print "Previous CellDock backup: $LEGACY_BACKUP_APP"
 fi
 
 if [[ "$LAUNCH_AFTER_INSTALL" == "--launch" ]]; then
-  INSTALLED_BINARY="$DESTINATION_APP/Contents/MacOS/CellDock"
+  INSTALLED_BINARY="$DESTINATION_APP/Contents/MacOS/iDock Pro Max"
   LAUNCH_TOKEN="--celldock-launch-token=$$-$RANDOM"
   /usr/bin/open -n -a "$DESTINATION_APP" --args "$LAUNCH_TOKEN"
   INSTALLED_PID=""
@@ -79,7 +80,7 @@ if [[ "$LAUNCH_AFTER_INSTALL" == "--launch" ]]; then
     sleep 0.1
   done
   [[ -n "$INSTALLED_PID" ]] || {
-    print -u2 "Installed CellDock did not start: $DESTINATION_APP"
+    print -u2 "Installed iDock Pro Max did not start: $DESTINATION_APP"
     exit 1
   }
   sleep 2
@@ -89,5 +90,5 @@ if [[ "$LAUNCH_AFTER_INSTALL" == "--launch" ]]; then
     print -u2 "Unexpected CellDock executable: $RUNNING_COMMAND"
     exit 1
   }
-  print "Installed CellDock launch verified: $INSTALLED_BINARY (pid $INSTALLED_PID)"
+  print "Installed iDock Pro Max launch verified: $INSTALLED_BINARY (pid $INSTALLED_PID)"
 fi

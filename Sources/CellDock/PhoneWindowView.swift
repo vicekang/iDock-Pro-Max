@@ -9,7 +9,19 @@ struct PhoneWindowView: View {
     @AppStorage("CommunicationSidebarWidth.v1") private var storedSidebarWidth = Double(CommunicationUI.sidebarWidth)
 
     var body: some View {
-        HStack(spacing: 0) {
+        VStack(spacing: 0) {
+            HStack {
+                IDockWordmark()
+                Spacer()
+                Text(L10n.tr("个人通信中心"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.leading, 88)
+            .padding(.trailing, 24)
+            .frame(height: 42)
+
+            HStack(spacing: 8) {
             CommunicationRailView(model: model)
 
             Group {
@@ -21,8 +33,13 @@ struct PhoneWindowView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
         }
-        .background(Color.clear)
+        .background { IDockWindowBackdrop() }
+        .groupBoxStyle(IDockGroupBoxStyle())
+        .adaptiveGlassButton()
         .ignoresSafeArea(.container, edges: .top)
         .onAppear {
             if contacts.authorizationState == .notDetermined {
@@ -464,11 +481,11 @@ private struct CommunicationRailView: View {
             railButton(.settings, icon: .settings)
         }
         .padding(.horizontal, 10)
-        .padding(.top, 46)
-        .padding(.bottom, 18)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
         .frame(width: CommunicationUI.railWidth)
         .frame(maxHeight: .infinity)
-        .communicationSidebarMaterial()
+        .adaptiveGlassSurface(cornerRadius: 26, treatment: .regular)
     }
 
     private func railButton(

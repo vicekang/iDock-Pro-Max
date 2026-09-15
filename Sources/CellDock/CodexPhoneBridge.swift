@@ -300,7 +300,7 @@ final class CodexPhoneBridge: ObservableObject {
 
     private func snapshot() -> [String: Any] {
         guard let state else { return [:] }
-        return ["version": "0.4.6-codex", "opening": openingSnapshot(), "portability": portabilitySnapshot(), "call": ["phase": state.call.phase.rawValue,
+        return ["version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown", "opening": openingSnapshot(), "portability": portabilitySnapshot(), "call": ["phase": state.call.phase.rawValue,
                  "number": state.call.number ?? "", "audioActive": state.call.audioActive, "ai": aiCall],
                 "agent": ["status": status, "autoAnswer": autoAnswer, "recordCalls": recordAICalls, "voice": voice.rawValue, "voiceBackend": "codex-native-realtime", "codexInstalled": CodexConversation.executable != nil],
                 "recording": ["phase": String(describing: state.callRecordings.phase), "count": state.callRecordings.records.count,

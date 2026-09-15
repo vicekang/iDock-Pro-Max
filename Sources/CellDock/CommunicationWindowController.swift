@@ -286,8 +286,8 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
             window.isReleasedWhenClosed = false
             window.tabbingMode = .disallowed
             window.delegate = self
-            window.backgroundColor = .windowBackgroundColor
-            window.isOpaque = true
+            window.backgroundColor = .clear
+            window.isOpaque = false
             switch kind {
             case .phone:
                 window.minSize = NSSize(width: 700, height: 480)

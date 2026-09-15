@@ -12,6 +12,7 @@ enum AdaptiveGlassButtonKind {
 }
 
 struct AdaptiveGlassBackdrop: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     let treatment: AdaptiveGlassTreatment
 
     init(treatment: AdaptiveGlassTreatment = .regular) {
@@ -20,7 +21,9 @@ struct AdaptiveGlassBackdrop: View {
 
     @ViewBuilder
     var body: some View {
-        if #available(macOS 26.0, *) {
+        if reduceTransparency {
+            Color(nsColor: .windowBackgroundColor)
+        } else if #available(macOS 26.0, *) {
             switch treatment {
             case .regular:
                 Rectangle()
@@ -83,10 +86,11 @@ struct AdaptiveGlassContainer<Content: View>: View {
 
 struct AdaptiveGlassToggleStyle: ToggleStyle {
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         Button {
-            withAnimation(.smooth(duration: 0.22)) {
+            withAnimation(reduceMotion ? nil : .smooth(duration: 0.22)) {
                 configuration.isOn.toggle()
             }
         } label: {
@@ -107,6 +111,8 @@ struct AdaptiveGlassToggleStyle: ToggleStyle {
 
 private struct AdaptiveGlassToggleTrack: View {
     @Environment(\.controlSize) private var controlSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     let isOn: Bool
 
@@ -124,7 +130,7 @@ private struct AdaptiveGlassToggleTrack: View {
                 .padding(thumbInset)
         }
         .frame(width: trackSize.width, height: trackSize.height)
-        .animation(.smooth(duration: 0.22), value: isOn)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: isOn)
         .accessibilityHidden(true)
     }
 
@@ -146,7 +152,7 @@ private struct AdaptiveGlassToggleTrack: View {
     @ViewBuilder
     private var track: some View {
         let shape = Capsule()
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, *), !reduceTransparency {
             shape
                 .fill(Color.clear)
                 .glassEffect(
@@ -172,6 +178,8 @@ extension ToggleStyle where Self == AdaptiveGlassToggleStyle {
 }
 
 private struct AdaptiveGlassSurfaceModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     let cornerRadius: CGFloat
     let padding: CGFloat
     let treatment: AdaptiveGlassTreatment
@@ -180,7 +188,19 @@ private struct AdaptiveGlassSurfaceModifier: ViewModifier {
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
+        if reduceTransparency {
+            let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            content.padding(padding)
+                .background {
+                    shape.fill(Color(nsColor: .controlBackgroundColor))
+                        .overlay { shape.fill(tint ?? .clear) }
+                        .allowsHitTesting(false)
+                }
+                .overlay {
+                    shape.strokeBorder(Color.primary.opacity(contrast == .increased ? 0.5 : 0.16), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+        } else if #available(macOS 26.0, *) {
             glassSurface(content: content)
         } else {
             let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -235,6 +255,7 @@ private struct AdaptiveGlassSurfaceModifier: ViewModifier {
 }
 
 private struct AdaptiveConcentricGlassSurfaceModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     let minimumCornerRadius: CGFloat
     let padding: CGFloat
     let treatment: AdaptiveGlassTreatment
@@ -243,7 +264,7 @@ private struct AdaptiveConcentricGlassSurfaceModifier: ViewModifier {
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, *), !reduceTransparency {
             glassSurface(content: content)
         } else {
             content.modifier(
@@ -339,6 +360,8 @@ private struct AdaptiveGlassButtonModifier: ViewModifier {
 
 private struct AdaptiveTranslucentCardModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
 
     let cornerRadius: CGFloat
     let padding: CGFloat
@@ -349,19 +372,20 @@ private struct AdaptiveTranslucentCardModifier: ViewModifier {
             .padding(padding)
             .background {
                 shape.fill(
-                    Color.white.opacity(colorScheme == .dark ? 0.055 : 0.12)
+                    Color(nsColor: .controlBackgroundColor)
+                        .opacity(reduceTransparency ? 1 : (colorScheme == .dark ? 0.66 : 0.72))
                 )
             }
             .overlay {
                 shape.strokeBorder(
-                    Color.white.opacity(colorScheme == .dark ? 0.14 : 0.32),
+                    Color.primary.opacity(contrast == .increased ? 0.4 : 0.075),
                     lineWidth: 0.6
                 )
             }
             .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.10 : 0.035),
-                radius: 9,
-                y: 3
+                color: Color.black.opacity(colorScheme == .dark ? 0.06 : 0.025),
+                radius: 6,
+                y: 2
             )
     }
 }

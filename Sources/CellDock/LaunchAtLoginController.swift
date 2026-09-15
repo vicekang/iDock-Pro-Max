@@ -65,6 +65,17 @@ struct LaunchAtLoginController {
     }
 
     func migrateLegacyRegistrationIfNeeded() throws {
+        // Preserve an existing enabled login item across the product rename.
+        // Never register a login item for users who had it disabled.
+        if applicationURL.path == "/Applications/iDock Pro Max.app",
+           isLoaded,
+           let data = try? Data(contentsOf: propertyListURL),
+           let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+           plist["Label"] as? String == Self.label,
+           plist["ProgramArguments"] as? [String] == ["/usr/bin/open", "-g", "/Applications/CellDock.app"],
+           plist["RunAtLoad"] as? Bool == true {
+            try installAndBootstrap()
+        }
         let legacyPropertyListURL = launchAgentsDirectory
             .appendingPathComponent("\(Self.legacyLabel).plist")
         guard fileManager.fileExists(atPath: legacyPropertyListURL.path) else { return }

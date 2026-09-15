@@ -23,18 +23,14 @@ struct AnimatedCommunicationRailButton: View {
             playActivation()
             action()
         } label: {
+            VStack(spacing: 5) {
             ZStack {
                 if isHovered && !isSelected {
                     RoundedRectangle(cornerRadius: 15, style: .continuous)
                         .fill(Color.primary.opacity(0.055))
                 }
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 15, style: .continuous)
-                        .fill(Color.accentColor.opacity(0.10))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                .strokeBorder(Color.accentColor.opacity(0.18), lineWidth: 0.7)
-                        }
+                    IDockSelectionSurface(cornerRadius: 16)
                         .matchedGeometryEffect(
                             id: "communicationRailSelection.\(selectionGroup)",
                             in: selectionNamespace
@@ -53,6 +49,12 @@ struct AnimatedCommunicationRailButton: View {
                 .scaleEffect(reduceMotion ? 1 : (isHovered ? 1.04 : 1))
             }
             .frame(width: 44, height: 44)
+            Text(section.title)
+                .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
+                .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                .lineLimit(1)
+            }
+            .frame(width: 56)
             .contentShape(Rectangle())
         }
         .buttonStyle(CommunicationRailPressStyle(reduceMotion: reduceMotion))

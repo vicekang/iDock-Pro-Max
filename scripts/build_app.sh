@@ -2,9 +2,10 @@
 set -euo pipefail
 
 ROOT="${0:A:h:h}"
+APP_NAME="$(plutil -extract CFBundleName raw "$ROOT/Resources/Info.plist")"
+APP_EXECUTABLE="$(plutil -extract CFBundleExecutable raw "$ROOT/Resources/Info.plist")"
 mkdir -p "$ROOT/.build/caches/clang" "$ROOT/.build/caches/swiftpm"
 mkdir -p "$ROOT/.build/home"
-export HOME="${HOME:-$ROOT/.build/home}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$ROOT/.build/caches}"
 export CLANG_MODULE_CACHE_PATH="${CLANG_MODULE_CACHE_PATH:-$ROOT/.build/caches/clang}"
 export SWIFTPM_MODULECACHE_OVERRIDE="${SWIFTPM_MODULECACHE_OVERRIDE:-$ROOT/.build/caches/swiftpm}"
@@ -98,19 +99,19 @@ else
   )
 fi
 OUTPUT_DIR="$ROOT/outputs"
-APP="$OUTPUT_DIR/CellDock.app"
+APP="$OUTPUT_DIR/$APP_NAME.app"
 ARCHIVE_ARCH="universal"
 BUILD_ARCH_OPTIONS=(--arch arm64 --arch x86_64)
-ZIP="$OUTPUT_DIR/CellDock-$VERSION-$ARCHIVE_ARCH$ARCHIVE_SUFFIX.zip"
-PUBLISH_ZIP="$OUTPUT_DIR/.CellDock-$VERSION-$ARCHIVE_ARCH$ARCHIVE_SUFFIX.$$.zip"
+ZIP="$OUTPUT_DIR/iDock-Pro-Max-$VERSION-$ARCHIVE_ARCH$ARCHIVE_SUFFIX.zip"
+PUBLISH_ZIP="$OUTPUT_DIR/.iDock-Pro-Max-$VERSION-$ARCHIVE_ARCH$ARCHIVE_SUFFIX.$$.zip"
 STAGE_DIR="$(mktemp -d /tmp/CellDock-build.XXXXXX)"
 STAGE_PACKAGE_DIR="$STAGE_DIR/package"
-STAGE_APP="$STAGE_PACKAGE_DIR/CellDock.app"
+STAGE_APP="$STAGE_PACKAGE_DIR/$APP_NAME.app"
 SPARKLE_FRAMEWORK_SOURCE="$ROOT/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 SPARKLE_FRAMEWORK_RELATIVE="Contents/Frameworks/Sparkle.framework"
-STAGE_ZIP="$STAGE_DIR/CellDock-$VERSION-$ARCHIVE_ARCH$ARCHIVE_SUFFIX.zip"
+STAGE_ZIP="$STAGE_DIR/iDock-Pro-Max-$VERSION-$ARCHIVE_ARCH$ARCHIVE_SUFFIX.zip"
 VERIFY_DIR="$STAGE_DIR/verify"
-VERIFY_APP="$VERIFY_DIR/CellDock.app"
+VERIFY_APP="$VERIFY_DIR/$APP_NAME.app"
 HELPER_RELATIVE="Contents/Library/PrivilegedHelperTools/CellDockNetworkHelper"
 VOWIFI_RUNTIME_RELATIVE="Contents/Library/PrivilegedHelperTools/CellDockVoWiFiRuntime"
 PLIST_RELATIVE="Contents/Library/LaunchDaemons/app.celldock.mac.network.helper.plist"
@@ -152,7 +153,7 @@ if [[ -d "$ROOT/Resources/ModuleVoice" ]]; then
     "$ROOT/Resources/ModuleVoice" \
     "$STAGE_APP/Contents/Resources/ModuleVoice.payload" >/dev/null
 fi
-cp "$BIN_DIR/CellDock" "$STAGE_APP/Contents/MacOS/CellDock"
+cp "$BIN_DIR/CellDock" "$STAGE_APP/Contents/MacOS/$APP_EXECUTABLE"
 cp "$BIN_DIR/CellDockNetworkHelper" "$STAGE_APP/$HELPER_RELATIVE"
 VOWIFI_GO_ROOT="$ROOT/ThirdParty/vowifi-go"
 [[ -f "$VOWIFI_GO_ROOT/go.mod" && -d "$VOWIFI_GO_ROOT/vendor" ]] || {
@@ -251,8 +252,8 @@ for signed_code in \
     --test-requirement "=certificate leaf = H\"$SIGN_CERT_SHA1\"" \
     "$signed_code"
 done
-if [[ "$SIGNING_MODE" == development && -d /Applications/CellDock.app ]]; then
-  EXISTING_TEAM_ID="$(codesign -dvv /Applications/CellDock.app 2>&1 | awk -F= '$1 == "TeamIdentifier" && !found { print $2; found=1 }')"
+if [[ "$SIGNING_MODE" == development && -d "/Applications/$APP_NAME.app" ]]; then
+  EXISTING_TEAM_ID="$(codesign -dvv "/Applications/$APP_NAME.app" 2>&1 | awk -F= '$1 == "TeamIdentifier" && !found { print $2; found=1 }')"
   SIGNED_TEAM_ID="$(codesign -dvv "$STAGE_APP" 2>&1 | awk -F= '$1 == "TeamIdentifier" && !found { print $2; found=1 }')"
   [[ -n "$EXISTING_TEAM_ID" && "$SIGNED_TEAM_ID" == "$EXISTING_TEAM_ID" ]] || {
     print -u2 "Development signing Team ID does not match the installed CellDock app."
@@ -265,7 +266,7 @@ ditto -c -k --sequesterRsrc "$STAGE_PACKAGE_DIR" "$STAGE_ZIP"
 mkdir -p "$VERIFY_DIR"
 ditto -x -k "$STAGE_ZIP" "$VERIFY_DIR"
 
-VERIFY_BINARY="$VERIFY_APP/Contents/MacOS/CellDock"
+VERIFY_BINARY="$VERIFY_APP/Contents/MacOS/$APP_EXECUTABLE"
 VERIFY_HELPER="$VERIFY_APP/$HELPER_RELATIVE"
 VERIFY_VOWIFI_RUNTIME="$VERIFY_APP/$VOWIFI_RUNTIME_RELATIVE"
 VERIFY_PLIST="$VERIFY_APP/$PLIST_RELATIVE"

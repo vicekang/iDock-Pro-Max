@@ -1,3 +1,11 @@
+# iDock Pro Max
+
+Personal macOS phone center with native Codex voice and Liquid Glass. This customized edition preserves CellDock’s original app identity and local data. See [installation and verification](docs/IDOCK_PRO_MAX.zh-CN.md).
+
+The upstream CellDock documentation follows.
+
+---
+
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 > **0.4.5:** prewarm Codex before answering and play a local opening while voice connects. Import your own recording and choose the subsequent AI voice in Settings. See [usage and validation limits](docs/INSTANT_CALL_OPENING.zh-CN.md). Includes the existing [Mac/iPhone USB mode experiment](docs/MAC_IPHONE_AUTO_SWITCH.zh-CN.md).

@@ -153,14 +153,14 @@ struct CellDockSettingsView: View {
             }
             .communicationSidebarScrollEdgeEffect()
 
-            Text(verbatim: "CellDock · \(updaterManager.currentVersion)")
+            Text(verbatim: "iDock Pro Max · \(updaterManager.currentVersion)")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 12)
-                .accessibilityLabel("CellDock \(updaterManager.currentVersion)")
+                .accessibilityLabel("iDock Pro Max \(updaterManager.currentVersion)")
         }
         .communicationInitialListFocus($listFocused)
         .communicationSidebarColumnStyle()
@@ -224,12 +224,7 @@ struct CellDockSettingsView: View {
         .buttonStyle(.plain)
         .background {
             if isSelected {
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.12))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 13, style: .continuous)
-                            .strokeBorder(Color.accentColor.opacity(0.22), lineWidth: 0.7)
-                    }
+                IDockSelectionSurface(cornerRadius: 14)
             }
         }
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -281,7 +276,7 @@ struct CellDockSettingsView: View {
     private var settingsHeader: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(selectedCategory.title)
-                .font(.largeTitle.bold())
+                .font(.system(size: 28, weight: .bold))
             Text(selectedCategory.detail)
                 .font(.body)
                 .foregroundStyle(.secondary)
@@ -442,56 +437,26 @@ struct CellDockSettingsView: View {
     }
 
     private var updateSettings: some View {
-        VStack(spacing: 16) {
-            settingsSection(title: L10n.tr("软件更新")) {
-                VStack(spacing: 0) {
-                    settingRow(
-                        title: L10n.tr("自动检查更新"),
-                        detail: updaterManager.currentVersion
-                    ) {
-                        Toggle("自动检查更新", isOn: Binding(
-                            get: { updaterManager.automaticallyChecksForUpdates },
-                            set: { updaterManager.automaticallyChecksForUpdates = $0 }
-                        ))
-                        .labelsHidden()
-                        .toggleStyle(.adaptiveGlass)
-                    }
-                    .padding(16)
-
-                    Divider().padding(.horizontal, 16)
-
-                    settingRow(
-                        title: L10n.tr("更新频道"),
-                        detail: updaterManager.channel == .stable
-                            ? L10n.tr("仅接收经过验证的正式版本")
-                            : L10n.tr("提前体验新功能，可能不够稳定")
-                    ) {
-                        Picker("更新频道", selection: $updaterManager.channel) {
-                            ForEach(UpdateChannel.allCases) { channel in
-                                Text(channel.title).tag(channel)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.segmented)
-                        .frame(width: 180)
-                    }
-                    .padding(16)
-
-                    Divider().padding(.horizontal, 16)
-
-                    settingRow(
-                        title: L10n.tr("立即检查"),
-                        detail: L10n.tr("从 CellDock 官方服务器检查并验证更新")
-                    ) {
-                        Button("检查更新…") {
-                            updaterManager.checkForUpdates()
-                        }
-                        .adaptiveGlassButton()
-                        .disabled(!updaterManager.canCheckForUpdates)
-                    }
-                    .padding(16)
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(spacing: 20) {
+                if let image = NSImage(named: NSImage.Name("NSApplicationIcon")) {
+                    Image(nsImage: image).resizable().frame(width: 72, height: 72)
                 }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: IDockBrand.name).font(.title.bold())
+                    Text(updaterManager.currentVersion).foregroundStyle(.secondary)
+                    Text(L10n.tr("Codex 原生语音 · Liquid Glass")).font(.callout).foregroundStyle(.secondary)
+                }
+            }.padding(.vertical, 12)
+            settingsSection(title: L10n.tr("版本与更新")) {
+                settingRow(title: L10n.tr("GitHub 发布版本"),
+                           detail: L10n.tr("查看此定制版本的更新与安装包。")) {
+                    Link(L10n.tr("查看更新"), destination: IDockBrand.releasesURL)
+                        .adaptiveGlassButton()
+                }.padding(16)
             }
+            Text(L10n.tr("基于开源项目 CellDock 构建。"))
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -722,10 +687,7 @@ struct CellDockSettingsView: View {
             Divider().padding(.horizontal, 16)
             content()
         }
-        .adaptiveGlassSurface(
-            cornerRadius: 18,
-            treatment: .regular
-        )
+        .adaptiveTranslucentCard(cornerRadius: 20, padding: 0)
     }
 
     private func settingRow<Accessory: View>(

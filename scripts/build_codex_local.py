@@ -26,6 +26,9 @@ def main():
     parser.add_argument('--library-validation-exception', action='store_true',
                         help='Required only for self-signed local certificates; opt in explicitly')
     args = parser.parse_args()
+    info = plistlib.loads((ROOT / 'Resources/Info.plist').read_bytes())
+    app_name = info['CFBundleName']
+    executable_name = info['CFBundleExecutable']
     if not re.fullmatch(r'[0-9A-Fa-f]{40}', args.identity):
         parser.error('identity must be a certificate SHA1 fingerprint')
     build = ROOT / '.build/codex-local'
@@ -62,14 +65,25 @@ def main():
                  '-F', framework_dir, '-framework', 'Sparkle', '-framework', 'CoreAudio', '-framework', 'IOKit',
                  '-Xlinker', '-rpath', '-Xlinker', '@executable_path/../Frameworks'] + includes +
         sorted((ROOT / 'Sources/CellDock').glob('*.swift')) + objects + ['-o', build / 'CellDock'])
-    output = ROOT / 'outputs/CellDock.app'
+    # The helper pins the installed application's canonical path. Recompile it
+    # with the same IPC definitions whenever branding or helper policy changes.
+    run(swift + ['-O', '-I', build, '-L', build, '-lCellDockNetworkIPC',
+                 '-framework', 'SystemConfiguration', '-framework', 'Security'] +
+        sorted((ROOT / 'Sources/CellDockNetworkHelper').glob('*.swift')) +
+        ['-o', build / 'CellDockNetworkHelper'])
+    output = ROOT / 'outputs' / (app_name + '.app')
     output.parent.mkdir(exist_ok=True)
     if output.exists():
         shutil.rmtree(output)
     run(['ditto', args.base_app, output])
-    shutil.copy2(build / 'CellDock', output / 'Contents/MacOS/CellDock')
-    info = plistlib.loads((ROOT / 'Resources/Info.plist').read_bytes())
-    info.update(CFBundleShortVersionString='0.4.6-codex', CFBundleVersion='113', CellDockCodexBridge=True,
+    base_info = plistlib.loads((args.base_app / 'Contents/Info.plist').read_bytes())
+    old_executable = output / 'Contents/MacOS' / base_info['CFBundleExecutable']
+    if base_info['CFBundleExecutable'] != executable_name:
+        old_executable.unlink()
+    shutil.copy2(build / 'CellDock', output / 'Contents/MacOS' / executable_name)
+    shutil.copy2(build / 'CellDockNetworkHelper', output / 'Contents/Library/PrivilegedHelperTools/CellDockNetworkHelper')
+    shutil.copy2(ROOT / 'Resources/CellDock.icns', output / 'Contents/Resources/CellDock.icns')
+    info.update(CellDockCodexBridge=True,
                 SUEnableAutomaticChecks=False, SUAutomaticallyUpdate=False)
     (output / 'Contents/Info.plist').write_bytes(plistlib.dumps(info))
     for localization in (ROOT / 'Resources/Localization').glob('*.lproj'):

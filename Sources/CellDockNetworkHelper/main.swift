@@ -165,7 +165,7 @@ private enum ClientValidator {
     }
 
     private static func isAllowedExecutablePath(_ path: String) -> Bool {
-        let expectedPath = "/Applications/CellDock.app/Contents/MacOS/CellDock"
+        let expectedPath = "/Applications/iDock Pro Max.app/Contents/MacOS/iDock Pro Max"
         let standardizedPath = URL(fileURLWithPath: path).standardizedFileURL.path
         return standardizedPath == expectedPath && canonical(standardizedPath) == expectedPath
     }

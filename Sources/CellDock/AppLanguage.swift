@@ -62,6 +62,7 @@ enum L10n {
         let language = AppLanguage.storedPreference
         let bundle = localizedBundle(for: language) ?? .main
         let value = bundle.localizedString(forKey: key, value: key, table: nil)
+            .replacingOccurrences(of: "CellDock", with: key.contains("官方") || key.contains("账户") || key.contains("开源项目") ? "CellDock" : "iDock Pro Max")
         guard !arguments.isEmpty else { return value }
         return String(format: value, locale: language.locale, arguments: arguments)
     }

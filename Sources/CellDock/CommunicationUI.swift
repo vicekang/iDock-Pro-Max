@@ -108,25 +108,6 @@ struct ResizableCommunicationSplit<Sidebar: View, Detail: View>: View {
     }
 }
 
-private struct CommunicationSidebarMaterial: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let effectView = NSVisualEffectView()
-        configure(effectView)
-        return effectView
-    }
-
-    func updateNSView(_ effectView: NSVisualEffectView, context: Context) {
-        configure(effectView)
-    }
-
-    private func configure(_ effectView: NSVisualEffectView) {
-        effectView.material = .sidebar
-        effectView.blendingMode = .behindWindow
-        effectView.state = .active
-        effectView.isEmphasized = false
-    }
-}
-
 private struct CommunicationSearchFieldModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -143,42 +124,19 @@ private struct CommunicationSearchFieldModifier: ViewModifier {
 }
 
 private struct CommunicationSidebarColumnModifier: ViewModifier {
-    private let backgroundFillOpacity = 0.34
-
     func body(content: Content) -> some View {
         content
-            .padding(.top, 10)
-            .background {
-                ZStack {
-                    CommunicationSidebarMaterial()
-
-                    Color(nsColor: .windowBackgroundColor)
-                        .opacity(backgroundFillOpacity)
-                }
-                .ignoresSafeArea(edges: .vertical)
-            }
+            .padding(.top, 18)
+            .adaptiveGlassSurface(cornerRadius: 24, treatment: .regular)
+            .padding(.trailing, 8)
     }
 }
 
 private struct CommunicationDetailColumnModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background {
-                GeometryReader { proxy in
-                    // Keep the Liquid Glass boundary outside the visible detail
-                    // column so its system-drawn leading rim is not rendered as
-                    // a divider between the sidebar and the detail content.
-                    AdaptiveGlassBackdrop(treatment: .regular)
-                        .frame(
-                            width: proxy.size.width + 24,
-                            height: proxy.size.height
-                        )
-                        .offset(x: -24)
-                }
-                .clipped()
-                .ignoresSafeArea(.container, edges: .vertical)
-                .allowsHitTesting(false)
-            }
+            .background { IDockContentSurface() }
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
 
@@ -229,21 +187,13 @@ extension View {
             .padding(.vertical, 2)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .fill(Color.accentColor.opacity(0.12))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                .strokeBorder(Color.accentColor.opacity(0.22), lineWidth: 0.7)
-                        }
+                    IDockSelectionSurface(cornerRadius: 14)
                 }
             }
     }
 
     func communicationSidebarMaterial() -> some View {
-        background {
-            CommunicationSidebarMaterial()
-                .ignoresSafeArea(edges: .vertical)
-        }
+        adaptiveGlassSurface(cornerRadius: 24, treatment: .regular)
     }
 
     func communicationSearchField() -> some View {
@@ -287,13 +237,15 @@ extension View {
 struct CommunicationGlassTabs<Selection: Hashable>: View {
     let items: [(Selection, String)]
     @Binding var selection: Selection
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var selectionNamespace
 
     var body: some View {
         HStack(spacing: 3) {
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                 let isSelected = selection == item.0
                 Button {
-                    withAnimation(.smooth(duration: 0.22)) {
+                    withAnimation(reduceMotion ? nil : .smooth(duration: 0.22)) {
                         selection = item.0
                     }
                 } label: {
@@ -301,18 +253,14 @@ struct CommunicationGlassTabs<Selection: Hashable>: View {
                         .font(.callout.weight(isSelected ? .semibold : .regular))
                         .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 5)
+                        .padding(.vertical, 7)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .background {
                     if isSelected {
-                        Capsule()
-                            .fill(Color.accentColor.opacity(0.10))
-                            .overlay {
-                                Capsule()
-                                    .strokeBorder(Color.white.opacity(0.48), lineWidth: 0.6)
-                            }
+                        IDockSelectionSurface(cornerRadius: 18)
+                            .matchedGeometryEffect(id: "tab", in: selectionNamespace)
                     }
                 }
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -320,9 +268,9 @@ struct CommunicationGlassTabs<Selection: Hashable>: View {
         }
         .padding(3)
         .adaptiveGlassSurface(
-            cornerRadius: 14,
+            cornerRadius: 20,
             padding: 0,
-            treatment: .clear,
+            treatment: .regular,
             isInteractive: true
         )
     }

@@ -1,3 +1,11 @@
+# iDock Pro Max
+
+基于 CellDock 的个人通信中心，支持 Codex 原生实时语音与 Liquid Glass 界面。定制版的[安装与验证说明](docs/IDOCK_PRO_MAX.zh-CN.md)。
+
+以下保留上游 CellDock 项目文档。
+
+---
+
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 > **0.4.5：**来电时提前准备 Codex，接通后先播放本地开场白，支持导入自己的录音和选择后续 AI 音色。[使用与验证边界](docs/INSTANT_CALL_OPENING.zh-CN.md)。保留 0.4.3 的 [Mac/iPhone 自动切换实验功能](docs/MAC_IPHONE_AUTO_SWITCH.zh-CN.md)。

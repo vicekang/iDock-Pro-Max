@@ -1,6 +1,7 @@
 import AppKit
 import Darwin
 import SwiftUI
+import CellDockNetworkIPC
 
 @main
 struct CellDockApp: App {
@@ -38,6 +39,37 @@ struct CellDockApp: App {
 private enum ModuleMaintenanceCLI {
     static func runIfRequested() {
         let arguments = Array(CommandLine.arguments.dropFirst())
+        // Signed maintenance entry points do not start the modem or UI. The
+        // installer retains the same canonical-path and certificate checks.
+        if arguments == ["--install-network-helper"] {
+            switch NetworkHelperInstaller().install() {
+            case .success:
+                print("iDock Pro Max network helper installed")
+                Darwin.exit(0)
+            case .failure(let error):
+                FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8))
+                Darwin.exit(1)
+            }
+        }
+        if arguments == ["--network-helper-status"] {
+            let connection = NSXPCConnection(machServiceName: CellDockNetworkIPC.helperLabel, options: .privileged)
+            connection.remoteObjectInterface = NSXPCInterface(with: CellDockNetworkHelperProtocol.self)
+            connection.resume()
+            let finished = DispatchSemaphore(value: 0)
+            var success = false
+            let proxy = connection.remoteObjectProxyWithErrorHandler { error in
+                FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8))
+                finished.signal()
+            } as? CellDockNetworkHelperProtocol
+            proxy?.ping { version, identity in
+                success = version == CellDockNetworkIPC.protocolVersion && identity == CellDockNetworkIPC.helperIdentity
+                print("protocol=\(version) identity=\(identity) ready=\(success)")
+                finished.signal()
+            }
+            let result = finished.wait(timeout: .now() + 10)
+            connection.invalidate()
+            Darwin.exit(result == .success && success ? 0 : 1)
+        }
         guard let action = arguments.first,
               action == "--module-shell" || action == "--module-push" else {
             return
