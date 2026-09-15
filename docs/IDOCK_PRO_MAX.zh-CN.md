@@ -51,6 +51,7 @@ python3 scripts/build_codex_local.py --base-app '/Applications/iDock Pro Max.app
 - 已有 7 份录音、通话归档及桥接 token 文件的 SHA-256 连续性验证通过（包含 1 份原声录音）。
 - Codex 原生语音自检连接成功：8 kHz、172160 个样本，其中 14772 个有声样本。
 - 已启用的登录启动项指向新的安装路径。
+- 管理员认证已完成：已安装的 root helper 与随包 helper 哈希一致，签名身份校验通过；真实 XPC 握手返回 `protocol=12 identity=CellDock Network Helper/16 ready=true`。VoWiFi 运行时文件也与随包版本一致且签名通过。
 - 本次未识别到 USB 模组，真实来电、蜂窝上网与锁屏来电未复测。
 
 安装包：`iDock-Pro-Max-0.5.0-114-arm64.zip`。
