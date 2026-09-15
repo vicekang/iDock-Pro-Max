@@ -74,8 +74,18 @@ struct RecordingsLibraryView: View {
 
     private var recordingList: some View {
         VStack(spacing: 0) {
-            Button("AI 通话记录与文字") { showsAIArchive = true }
-                .padding(.bottom, 10)
+            HStack {
+                Text(L10n.tr("通话录音")).font(.title2.bold())
+                Spacer()
+                Button { showsAIArchive = true } label: {
+                    Image(systemName: "text.bubble")
+                }
+                .help(L10n.tr("AI 通话记录与文字"))
+                .accessibilityLabel(L10n.tr("AI 通话记录与文字"))
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 18)
             TextField("搜索录音、联系人或号码", text: $searchText)
                 .communicationSearchField()
                 .padding(.horizontal, 14)
@@ -377,11 +387,7 @@ private struct RecordingDetailPane: View {
 
             headerActions
         }
-        .adaptiveGlassSurface(
-            cornerRadius: 20,
-            padding: 16,
-            treatment: .regular
-        )
+        .padding(.vertical, 8)
     }
 
     private var identity: some View {
@@ -513,11 +519,7 @@ private struct RecordingPlayerCard: View {
 
             playbackControls
         }
-        .adaptiveGlassSurface(
-            cornerRadius: 22,
-            padding: 18,
-            treatment: .regular
-        )
+        .padding(.vertical, 20)
     }
 
     @ViewBuilder
@@ -827,7 +829,7 @@ private struct RecordingWaveformView: View {
             let sampleProgress = Double(index) / Double(max(targetCount - 1, 1))
             let barColor = sampleProgress <= resolvedProgress
                 ? color
-                : Color.secondary.opacity(0.28)
+                : color.opacity(0.32)
             context.stroke(
                 bar,
                 with: .color(barColor),
@@ -862,11 +864,7 @@ private struct RecordingInformationCard: View {
                 channelInformation
             }
         }
-        .adaptiveGlassSurface(
-            cornerRadius: 20,
-            padding: 16,
-            treatment: .regular
-        )
+        .adaptiveTranslucentCard(cornerRadius: 12, padding: 16)
     }
 
     private var recordingInformation: some View {

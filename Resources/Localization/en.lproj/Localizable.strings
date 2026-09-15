@@ -1697,3 +1697,12 @@
 "查看更新" = "View updates";
 "查看此定制版本的更新与安装包。" = "Find updates and installers for this custom edition.";
 "版本与更新" = "Version and updates";
+
+/* Native window refinement */
+"AI 接听" = "AI Answering";
+"来电接听、音色与开场白" = "Incoming calls, voice and greeting";
+"锁屏与后台运行" = "Lock Screen & Background";
+"自定义开场白" = "Customize Greeting";
+"来电接听" = "Incoming Calls";
+"开场白" = "Greeting";
+"AI 通话记录与文字" = "AI Call History & Transcripts";

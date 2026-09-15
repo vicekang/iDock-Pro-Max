@@ -85,96 +85,15 @@ struct AdaptiveGlassContainer<Content: View>: View {
 }
 
 struct AdaptiveGlassToggleStyle: ToggleStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     func makeBody(configuration: Configuration) -> some View {
-        Button {
-            withAnimation(reduceMotion ? nil : .smooth(duration: 0.22)) {
-                configuration.isOn.toggle()
-            }
-        } label: {
-            HStack(spacing: 10) {
-                configuration.label
-
-                Spacer(minLength: 0)
-
-                AdaptiveGlassToggleTrack(isOn: configuration.isOn)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .opacity(isEnabled ? 1 : 0.48)
-        .accessibilityValue(configuration.isOn ? "开启" : "关闭")
-    }
-}
-
-private struct AdaptiveGlassToggleTrack: View {
-    @Environment(\.controlSize) private var controlSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    let isOn: Bool
-
-    var body: some View {
-        ZStack(alignment: isOn ? .trailing : .leading) {
-            track
-
-            Circle()
-                .fill(Color.white.opacity(0.94))
-                .overlay {
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.55), lineWidth: 0.5)
-                }
-                .shadow(color: .black.opacity(0.18), radius: 2.5, y: 1)
-                .padding(thumbInset)
-        }
-        .frame(width: trackSize.width, height: trackSize.height)
-        .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: isOn)
-        .accessibilityHidden(true)
-    }
-
-    private var trackSize: CGSize {
-        switch controlSize {
-        case .mini:
-            return CGSize(width: 30, height: 17)
-        case .small:
-            return CGSize(width: 36, height: 20)
-        default:
-            return CGSize(width: 42, height: 24)
-        }
-    }
-
-    private var thumbInset: CGFloat {
-        controlSize == .mini ? 2 : 3
-    }
-
-    @ViewBuilder
-    private var track: some View {
-        let shape = Capsule()
-        if #available(macOS 26.0, *), !reduceTransparency {
-            shape
-                .fill(Color.clear)
-                .glassEffect(
-                    .regular
-                        .tint(isOn ? Color.accentColor : Color.secondary.opacity(0.12))
-                        .interactive(),
-                    in: shape
-                )
-        } else {
-            shape
-                .fill(isOn ? Color.accentColor : Color.secondary.opacity(0.18))
-                .overlay {
-                    shape.strokeBorder(Color.white.opacity(0.28), lineWidth: 0.5)
-                }
-        }
+        // System switches honor labelsHidden, keyboard input and accessibility
+        // while adopting the current macOS control material automatically.
+        SwitchToggleStyle().makeBody(configuration: configuration)
     }
 }
 
 extension ToggleStyle where Self == AdaptiveGlassToggleStyle {
-    static var adaptiveGlass: AdaptiveGlassToggleStyle {
-        AdaptiveGlassToggleStyle()
-    }
+    static var adaptiveGlass: AdaptiveGlassToggleStyle { AdaptiveGlassToggleStyle() }
 }
 
 private struct AdaptiveGlassSurfaceModifier: ViewModifier {
@@ -373,20 +292,15 @@ private struct AdaptiveTranslucentCardModifier: ViewModifier {
             .background {
                 shape.fill(
                     Color(nsColor: .controlBackgroundColor)
-                        .opacity(reduceTransparency ? 1 : (colorScheme == .dark ? 0.66 : 0.72))
+                        .opacity(reduceTransparency ? 1 : (colorScheme == .dark ? 0.75 : 1))
                 )
             }
             .overlay {
                 shape.strokeBorder(
-                    Color.primary.opacity(contrast == .increased ? 0.4 : 0.075),
+                    Color.primary.opacity(contrast == .increased ? 0.4 : 0.045),
                     lineWidth: 0.6
                 )
             }
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.06 : 0.025),
-                radius: 6,
-                y: 2
-            )
     }
 }
 

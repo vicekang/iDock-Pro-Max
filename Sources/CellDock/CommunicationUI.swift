@@ -44,18 +44,23 @@ struct ResizableCommunicationSplit<Sidebar: View, Detail: View>: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            sidebar.frame(width: liveSidebarWidth)
+        GeometryReader { geometry in
+            // Preserve the preferred width, but never squeeze the reading pane
+            // when the user narrows the window. The preference returns on resize.
+            let visibleSidebarWidth = min(liveSidebarWidth, max(210, geometry.size.width - 420))
+            HStack(spacing: 0) {
+                sidebar.frame(width: visibleSidebarWidth)
 
-            detail
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .overlay(alignment: .leading) {
-                    Color.clear
-                        .frame(width: 9)
-                        .contentShape(Rectangle())
-                        .onHover(perform: dividerHoverChanged)
-                        .gesture(resizeGesture)
-                }
+                detail
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay(alignment: .leading) {
+                        Color.clear
+                            .frame(width: 9)
+                            .contentShape(Rectangle())
+                            .onHover(perform: dividerHoverChanged)
+                            .gesture(resizeGesture(startingAt: visibleSidebarWidth))
+                    }
+            }
         }
         .onChange(of: sidebarWidth) { _, newWidth in
             guard !isDragging else { return }
@@ -68,10 +73,10 @@ struct ResizableCommunicationSplit<Sidebar: View, Detail: View>: View {
         }
     }
 
-    private var resizeGesture: some Gesture {
+    private func resizeGesture(startingAt visibleWidth: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 0, coordinateSpace: .global)
             .onChanged { value in
-                let start = dragStartWidth ?? liveSidebarWidth
+                let start = dragStartWidth ?? visibleWidth
                 if dragStartWidth == nil {
                     dragStartWidth = start
                     isDragging = true
@@ -114,21 +119,15 @@ private struct CommunicationSearchFieldModifier: ViewModifier {
             .textFieldStyle(.plain)
             .padding(.horizontal, 10)
             .frame(height: 32)
-            .adaptiveGlassSurface(
-                cornerRadius: 12,
-                padding: 0,
-                treatment: .clear,
-                isInteractive: true
-            )
+            .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
 private struct CommunicationSidebarColumnModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding(.top, 18)
-            .adaptiveGlassSurface(cornerRadius: 24, treatment: .regular)
-            .padding(.trailing, 8)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
     }
 }
 
@@ -136,7 +135,6 @@ private struct CommunicationDetailColumnModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background { IDockContentSurface() }
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 }
 
@@ -156,14 +154,9 @@ private struct CommunicationModuleFloatingSidebarModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear
-                    .frame(height: 48)
-                    .allowsHitTesting(false)
-            }
-            .overlay(alignment: .bottom) {
                 CommunicationModuleFloatingCard()
                 .padding(.horizontal, 12)
-                .padding(.bottom, 8)
+                .padding(.vertical, 12)
             }
     }
 }
@@ -175,7 +168,6 @@ private struct CommunicationModuleFloatingCard: View {
                 CommunicationWindowController.shared.showPhone(section: .sim)
             }
         }
-        .shadow(color: .black.opacity(0.11), radius: 9, y: 4)
         .accessibilityElement(children: .contain)
     }
 }
@@ -187,13 +179,13 @@ extension View {
             .padding(.vertical, 2)
             .background {
                 if isSelected {
-                    IDockSelectionSurface(cornerRadius: 14)
+                    IDockSelectionSurface(cornerRadius: 8)
                 }
             }
     }
 
     func communicationSidebarMaterial() -> some View {
-        adaptiveGlassSurface(cornerRadius: 24, treatment: .regular)
+        background { IDockWindowBackdrop() }
     }
 
     func communicationSearchField() -> some View {
@@ -241,38 +233,14 @@ struct CommunicationGlassTabs<Selection: Hashable>: View {
     @Namespace private var selectionNamespace
 
     var body: some View {
-        HStack(spacing: 3) {
+        Picker("", selection: $selection) {
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                let isSelected = selection == item.0
-                Button {
-                    withAnimation(reduceMotion ? nil : .smooth(duration: 0.22)) {
-                        selection = item.0
-                    }
-                } label: {
-                    Text(L10n.tr(item.1))
-                        .font(.callout.weight(isSelected ? .semibold : .regular))
-                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .background {
-                    if isSelected {
-                        IDockSelectionSurface(cornerRadius: 18)
-                            .matchedGeometryEffect(id: "tab", in: selectionNamespace)
-                    }
-                }
-                .accessibilityAddTraits(isSelected ? .isSelected : [])
+                Text(L10n.tr(item.1)).tag(item.0)
             }
         }
-        .padding(3)
-        .adaptiveGlassSurface(
-            cornerRadius: 20,
-            padding: 0,
-            treatment: .regular,
-            isInteractive: true
-        )
+        .labelsHidden()
+        .pickerStyle(.segmented)
+        .controlSize(.regular)
     }
 }
 

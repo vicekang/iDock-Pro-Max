@@ -1694,3 +1694,12 @@
 "查看更新" = "Voir les mises à jour";
 "查看此定制版本的更新与安装包。" = "Consultez les mises à jour et installateurs de cette édition personnalisée.";
 "版本与更新" = "Version et mises à jour";
+
+/* Native window refinement */
+"AI 接听" = "Réponse IA";
+"来电接听、音色与开场白" = "Appels entrants, voix et accueil";
+"锁屏与后台运行" = "Écran verrouillé et arrière-plan";
+"自定义开场白" = "Personnaliser l’accueil";
+"来电接听" = "Appels entrants";
+"开场白" = "Accueil";
+"AI 通话记录与文字" = "Historique et transcriptions IA";

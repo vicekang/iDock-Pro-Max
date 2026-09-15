@@ -132,6 +132,7 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
 
     private weak var appState: AppState?
     private var windows: [Kind: NSWindow] = [:]
+    private lazy var navigationToolbar = IDockToolbarController(model: phoneModel)
 
     private override init() {
         super.init()
@@ -272,22 +273,23 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
                 .titled,
                 .closable,
                 .miniaturizable,
-                .resizable,
-                .fullSizeContentView
+                .resizable
             ]
             window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
-            window.toolbar = nil
+            window.titleVisibility = .visible
+            if kind == .phone {
+                window.toolbar = navigationToolbar.makeToolbar()
+                window.toolbarStyle = .unified
+            }
             window.titlebarSeparatorStyle = .none
-            // The full-size SwiftUI content replaces the visible title bar, so
-            // let unhandled background regions retain native window dragging.
+            // Let AppKit size the title bar and its glass controls.
             window.isMovable = true
             window.isMovableByWindowBackground = true
             window.isReleasedWhenClosed = false
             window.tabbingMode = .disallowed
             window.delegate = self
-            window.backgroundColor = .clear
-            window.isOpaque = false
+            window.backgroundColor = .windowBackgroundColor
+            window.isOpaque = true
             switch kind {
             case .phone:
                 window.minSize = NSSize(width: 700, height: 480)
@@ -303,7 +305,9 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
         }
 
         if kind == .phone {
-            window.title = communicationWindowTitle
+            window.title = IDockBrand.name
+            window.subtitle = communicationWindowTitle
+            navigationToolbar.updateSelection()
         }
 
         NSApplication.shared.setActivationPolicy(.regular)
@@ -315,11 +319,14 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
     }
 
     func refreshCommunicationWindowTitle() {
-        windows[.phone]?.title = communicationWindowTitle
+        windows[.phone]?.title = IDockBrand.name
+        windows[.phone]?.subtitle = communicationWindowTitle
+        navigationToolbar.updateSelection()
     }
 
     @objc private func appLanguageDidChange() {
-        windows[.phone]?.title = communicationWindowTitle
+        windows[.phone]?.toolbar = navigationToolbar.makeToolbar()
+        refreshCommunicationWindowTitle()
         windows[.messages]?.title = L10n.tr("短信")
     }
 

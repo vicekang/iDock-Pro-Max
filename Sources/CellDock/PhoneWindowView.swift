@@ -9,38 +9,18 @@ struct PhoneWindowView: View {
     @AppStorage("CommunicationSidebarWidth.v1") private var storedSidebarWidth = Double(CommunicationUI.sidebarWidth)
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                IDockWordmark()
-                Spacer()
-                Text(L10n.tr("个人通信中心"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        Group {
+            if appState.call.hasCall && model.prefersFullCallPresentation {
+                ActiveCallView(contacts: contacts)
+                    .environmentObject(appState)
+            } else {
+                sectionContent
             }
-            .padding(.leading, 88)
-            .padding(.trailing, 24)
-            .frame(height: 42)
-
-            HStack(spacing: 8) {
-            CommunicationRailView(model: model)
-
-            Group {
-                if appState.call.hasCall && model.prefersFullCallPresentation {
-                    ActiveCallView(contacts: contacts)
-                        .environmentObject(appState)
-                } else {
-                    sectionContent
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background { IDockWindowBackdrop() }
         .groupBoxStyle(IDockGroupBoxStyle())
         .adaptiveGlassButton()
-        .ignoresSafeArea(.container, edges: .top)
         .onAppear {
             if contacts.authorizationState == .notDetermined {
                 contacts.requestAccess()
@@ -454,74 +434,6 @@ private struct CommunicationModulePopoverAction: View {
                 )
         }
         .onHover { isHovered = $0 }
-    }
-}
-
-private struct CommunicationRailView: View {
-    @EnvironmentObject private var appState: AppState
-    @ObservedObject var model: PhoneWindowModel
-    @Namespace private var selectionNamespace
-
-    var body: some View {
-        VStack(spacing: 12) {
-            railButton(.messages, icon: .messages)
-            railButton(.recents, icon: .recents)
-            railButton(.recordings, icon: .recordings)
-            railButton(.proxy, icon: .proxy)
-            Spacer()
-            if appState.isPresentationPrivacyEnabled {
-                Image(systemName: "checkmark.shield.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.green)
-                    .frame(width: 44, height: 28)
-                    .help(L10n.tr("演示隐私保护已开启"))
-                    .accessibilityLabel(L10n.tr("演示隐私保护已开启"))
-            }
-            railButton(.sim, icon: .sim)
-            railButton(.settings, icon: .settings)
-        }
-        .padding(.horizontal, 10)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
-        .frame(width: CommunicationUI.railWidth)
-        .frame(maxHeight: .infinity)
-        .adaptiveGlassSurface(cornerRadius: 26, treatment: .regular)
-    }
-
-    private func railButton(
-        _ section: PhoneWindowSection,
-        icon: CommunicationRailIconKind
-    ) -> some View {
-        let isSelected = normalizedSelection == section
-        return AnimatedCommunicationRailButton(
-            section: section,
-            icon: icon,
-            isSelected: isSelected,
-            selectionNamespace: selectionNamespace,
-            selectionGroup: selectionGroup(for: section)
-        ) {
-            withAnimation(.smooth(duration: 0.28)) {
-                model.activateFromRail(section)
-            }
-        }
-    }
-
-    private func selectionGroup(for section: PhoneWindowSection) -> String {
-        switch section {
-        case .messages, .recents, .recordings, .proxy:
-            return "primary"
-        case .sim, .settings:
-            return "secondary"
-        case .dialer, .contacts:
-            return "primary"
-        }
-    }
-
-    private var normalizedSelection: PhoneWindowSection {
-        switch model.selection {
-        case .dialer, .contacts: return .recents
-        default: return model.selection
-        }
     }
 }
 

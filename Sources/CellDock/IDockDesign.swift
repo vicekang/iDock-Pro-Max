@@ -26,7 +26,7 @@ struct IDockWindowBackdrop: View {
 private struct IDockWindowMaterial: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = .underWindowBackground
+        view.material = .sidebar
         view.blendingMode = .behindWindow
         view.state = .followsWindowActiveState
         return view
@@ -37,30 +37,18 @@ private struct IDockWindowMaterial: NSViewRepresentable {
 
 /// A quiet reading surface, distinct from the floating glass control layer.
 struct IDockContentSurface: View {
-    @Environment(\.colorScheme) private var scheme
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.colorSchemeContrast) private var contrast
-
     var body: some View {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(Color(nsColor: .windowBackgroundColor)
-                .opacity(reduceTransparency ? 1 : (scheme == .dark ? 0.92 : 0.88)))
-            .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(contrast == .increased ? 0.4 : 0.055), lineWidth: 0.5)
-            }
+        Color(nsColor: .windowBackgroundColor)
             .allowsHitTesting(false)
     }
 }
 
 struct IDockSelectionSurface: View {
-    var cornerRadius: CGFloat = 14
+    var cornerRadius: CGFloat = 8
 
     var body: some View {
-        Color.clear
-            .adaptiveGlassSurface(cornerRadius: cornerRadius,
-                                  tint: Color.accentColor.opacity(0.16),
-                                  isInteractive: true)
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(Color.accentColor.opacity(0.13))
             .allowsHitTesting(false)
     }
 }
@@ -85,6 +73,6 @@ struct IDockGroupBoxStyle: GroupBoxStyle {
             configuration.content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .adaptiveTranslucentCard(cornerRadius: 20, padding: 18)
+        .adaptiveTranslucentCard(cornerRadius: 12, padding: 18)
     }
 }
