@@ -8,7 +8,7 @@ struct ModulePortabilitySettingsView: View {
         GroupBox {
             VStack(alignment: .leading, spacing: 10) {
                 Text(verbatim: enabled ? "自动切换已启用" : "当前为 Mac 固定模式")
-                Text(verbatim: "一次开启后，模块默认提供手机网络；连接此 Mac 时，CellDock 自动恢复电话和短信能力。切换时模块会短暂重连。")
+                Text(verbatim: "一次开启后，模块默认提供手机网络；连接此 Mac 时，iDock Pro Max 自动恢复电话和短信能力。切换时模块会短暂重连。")
                     .font(.caption).foregroundStyle(.secondary)
                 Text(verbatim: "iPhone 需要支持 USB 网卡的连接方式和足够供电。此模块的 iPhone 实际兼容性仍需拔插验收。")
                     .font(.caption).foregroundStyle(.secondary)

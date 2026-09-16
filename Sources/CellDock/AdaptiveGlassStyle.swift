@@ -12,6 +12,7 @@ enum AdaptiveGlassButtonKind {
 }
 
 struct AdaptiveGlassBackdrop: View {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     let treatment: AdaptiveGlassTreatment
 
     init(treatment: AdaptiveGlassTreatment = .regular) {
@@ -20,7 +21,9 @@ struct AdaptiveGlassBackdrop: View {
 
     @ViewBuilder
     var body: some View {
-        if #available(macOS 26.0, *) {
+        if reduceTransparency {
+            Color(nsColor: .windowBackgroundColor)
+        } else if #available(macOS 26.0, *) {
             switch treatment {
             case .regular:
                 Rectangle()
@@ -82,96 +85,20 @@ struct AdaptiveGlassContainer<Content: View>: View {
 }
 
 struct AdaptiveGlassToggleStyle: ToggleStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
     func makeBody(configuration: Configuration) -> some View {
-        Button {
-            withAnimation(.smooth(duration: 0.22)) {
-                configuration.isOn.toggle()
-            }
-        } label: {
-            HStack(spacing: 10) {
-                configuration.label
-
-                Spacer(minLength: 0)
-
-                AdaptiveGlassToggleTrack(isOn: configuration.isOn)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .opacity(isEnabled ? 1 : 0.48)
-        .accessibilityValue(configuration.isOn ? "开启" : "关闭")
-    }
-}
-
-private struct AdaptiveGlassToggleTrack: View {
-    @Environment(\.controlSize) private var controlSize
-
-    let isOn: Bool
-
-    var body: some View {
-        ZStack(alignment: isOn ? .trailing : .leading) {
-            track
-
-            Circle()
-                .fill(Color.white.opacity(0.94))
-                .overlay {
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.55), lineWidth: 0.5)
-                }
-                .shadow(color: .black.opacity(0.18), radius: 2.5, y: 1)
-                .padding(thumbInset)
-        }
-        .frame(width: trackSize.width, height: trackSize.height)
-        .animation(.smooth(duration: 0.22), value: isOn)
-        .accessibilityHidden(true)
-    }
-
-    private var trackSize: CGSize {
-        switch controlSize {
-        case .mini:
-            return CGSize(width: 30, height: 17)
-        case .small:
-            return CGSize(width: 36, height: 20)
-        default:
-            return CGSize(width: 42, height: 24)
-        }
-    }
-
-    private var thumbInset: CGFloat {
-        controlSize == .mini ? 2 : 3
-    }
-
-    @ViewBuilder
-    private var track: some View {
-        let shape = Capsule()
-        if #available(macOS 26.0, *) {
-            shape
-                .fill(Color.clear)
-                .glassEffect(
-                    .regular
-                        .tint(isOn ? Color.accentColor : Color.secondary.opacity(0.12))
-                        .interactive(),
-                    in: shape
-                )
-        } else {
-            shape
-                .fill(isOn ? Color.accentColor : Color.secondary.opacity(0.18))
-                .overlay {
-                    shape.strokeBorder(Color.white.opacity(0.28), lineWidth: 0.5)
-                }
-        }
+        // System switches honor labelsHidden, keyboard input and accessibility
+        // while adopting the current macOS control material automatically.
+        SwitchToggleStyle().makeBody(configuration: configuration)
     }
 }
 
 extension ToggleStyle where Self == AdaptiveGlassToggleStyle {
-    static var adaptiveGlass: AdaptiveGlassToggleStyle {
-        AdaptiveGlassToggleStyle()
-    }
+    static var adaptiveGlass: AdaptiveGlassToggleStyle { AdaptiveGlassToggleStyle() }
 }
 
 private struct AdaptiveGlassSurfaceModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     let cornerRadius: CGFloat
     let padding: CGFloat
     let treatment: AdaptiveGlassTreatment
@@ -180,7 +107,19 @@ private struct AdaptiveGlassSurfaceModifier: ViewModifier {
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
+        if reduceTransparency {
+            let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            content.padding(padding)
+                .background {
+                    shape.fill(Color(nsColor: .controlBackgroundColor))
+                        .overlay { shape.fill(tint ?? .clear) }
+                        .allowsHitTesting(false)
+                }
+                .overlay {
+                    shape.strokeBorder(Color.primary.opacity(contrast == .increased ? 0.5 : 0.16), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+        } else if #available(macOS 26.0, *) {
             glassSurface(content: content)
         } else {
             let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -235,6 +174,7 @@ private struct AdaptiveGlassSurfaceModifier: ViewModifier {
 }
 
 private struct AdaptiveConcentricGlassSurfaceModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     let minimumCornerRadius: CGFloat
     let padding: CGFloat
     let treatment: AdaptiveGlassTreatment
@@ -243,7 +183,7 @@ private struct AdaptiveConcentricGlassSurfaceModifier: ViewModifier {
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, *), !reduceTransparency {
             glassSurface(content: content)
         } else {
             content.modifier(
@@ -339,6 +279,8 @@ private struct AdaptiveGlassButtonModifier: ViewModifier {
 
 private struct AdaptiveTranslucentCardModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
 
     let cornerRadius: CGFloat
     let padding: CGFloat
@@ -349,20 +291,16 @@ private struct AdaptiveTranslucentCardModifier: ViewModifier {
             .padding(padding)
             .background {
                 shape.fill(
-                    Color.white.opacity(colorScheme == .dark ? 0.055 : 0.12)
+                    Color(nsColor: .controlBackgroundColor)
+                        .opacity(reduceTransparency ? 1 : (colorScheme == .dark ? 0.75 : 1))
                 )
             }
             .overlay {
                 shape.strokeBorder(
-                    Color.white.opacity(colorScheme == .dark ? 0.14 : 0.32),
+                    Color.primary.opacity(contrast == .increased ? 0.4 : 0.045),
                     lineWidth: 0.6
                 )
             }
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.10 : 0.035),
-                radius: 9,
-                y: 3
-            )
     }
 }
 

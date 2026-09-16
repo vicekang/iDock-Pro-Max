@@ -5,9 +5,9 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh-Hans</string>
 	<key>CFBundleDisplayName</key>
-	<string>CellDock</string>
+	<string>iDock Pro Max</string>
 	<key>CFBundleExecutable</key>
-	<string>CellDock</string>
+	<string>iDock Pro Max</string>
 	<key>CFBundleIconFile</key>
 	<string>CellDock.icns</string>
 	<key>CFBundleIdentifier</key>
@@ -22,13 +22,13 @@
 		<string>fr</string>
 	</array>
 	<key>CFBundleName</key>
-	<string>CellDock</string>
+	<string>iDock Pro Max</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.4.5-codex</string>
+	<string>0.5.2-codex</string>
 	<key>CFBundleVersion</key>
-	<string>112</string>
+	<string>123</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>

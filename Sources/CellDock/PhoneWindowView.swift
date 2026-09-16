@@ -9,21 +9,18 @@ struct PhoneWindowView: View {
     @AppStorage("CommunicationSidebarWidth.v1") private var storedSidebarWidth = Double(CommunicationUI.sidebarWidth)
 
     var body: some View {
-        HStack(spacing: 0) {
-            CommunicationRailView(model: model)
-
-            Group {
-                if appState.call.hasCall && model.prefersFullCallPresentation {
-                    ActiveCallView(contacts: contacts)
-                        .environmentObject(appState)
-                } else {
-                    sectionContent
-                }
+        Group {
+            if appState.call.hasCall && model.prefersFullCallPresentation {
+                ActiveCallView(contacts: contacts)
+                    .environmentObject(appState)
+            } else {
+                sectionContent
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(Color.clear)
-        .ignoresSafeArea(.container, edges: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { IDockWindowBackdrop() }
+        .groupBoxStyle(IDockGroupBoxStyle())
+        .adaptiveGlassButton()
         .onAppear {
             if contacts.authorizationState == .notDetermined {
                 contacts.requestAccess()
@@ -89,7 +86,7 @@ struct PhoneWindowView: View {
                     .communicationDetailColumnStyle()
             }
         case .contacts:
-            ContactsManagementView(contacts: contacts) { number in
+            ContactsManagementView(contacts: contacts, sidebarWidth: sidebarWidthBinding) { number in
                 model.present(number: number, section: .dialer)
             }
             .environmentObject(appState)
@@ -186,7 +183,8 @@ struct CommunicationModuleStatusMenu: View {
             }
             .font(.callout)
             .padding(.horizontal, 12)
-            .frame(width: 210, height: 36)
+            .frame(maxWidth: .infinity)
+            .frame(height: 36)
             .contentShape(
                 RoundedRectangle(cornerRadius: 15, style: .continuous)
             )
@@ -437,74 +435,6 @@ private struct CommunicationModulePopoverAction: View {
                 )
         }
         .onHover { isHovered = $0 }
-    }
-}
-
-private struct CommunicationRailView: View {
-    @EnvironmentObject private var appState: AppState
-    @ObservedObject var model: PhoneWindowModel
-    @Namespace private var selectionNamespace
-
-    var body: some View {
-        VStack(spacing: 12) {
-            railButton(.messages, icon: .messages)
-            railButton(.recents, icon: .recents)
-            railButton(.recordings, icon: .recordings)
-            railButton(.proxy, icon: .proxy)
-            Spacer()
-            if appState.isPresentationPrivacyEnabled {
-                Image(systemName: "checkmark.shield.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.green)
-                    .frame(width: 44, height: 28)
-                    .help(L10n.tr("演示隐私保护已开启"))
-                    .accessibilityLabel(L10n.tr("演示隐私保护已开启"))
-            }
-            railButton(.sim, icon: .sim)
-            railButton(.settings, icon: .settings)
-        }
-        .padding(.horizontal, 10)
-        .padding(.top, 46)
-        .padding(.bottom, 18)
-        .frame(width: CommunicationUI.railWidth)
-        .frame(maxHeight: .infinity)
-        .communicationSidebarMaterial()
-    }
-
-    private func railButton(
-        _ section: PhoneWindowSection,
-        icon: CommunicationRailIconKind
-    ) -> some View {
-        let isSelected = normalizedSelection == section
-        return AnimatedCommunicationRailButton(
-            section: section,
-            icon: icon,
-            isSelected: isSelected,
-            selectionNamespace: selectionNamespace,
-            selectionGroup: selectionGroup(for: section)
-        ) {
-            withAnimation(.smooth(duration: 0.28)) {
-                model.activateFromRail(section)
-            }
-        }
-    }
-
-    private func selectionGroup(for section: PhoneWindowSection) -> String {
-        switch section {
-        case .messages, .recents, .recordings, .proxy:
-            return "primary"
-        case .sim, .settings:
-            return "secondary"
-        case .dialer, .contacts:
-            return "primary"
-        }
-    }
-
-    private var normalizedSelection: PhoneWindowSection {
-        switch model.selection {
-        case .dialer, .contacts: return .recents
-        default: return model.selection
-        }
     }
 }
 
@@ -1088,14 +1018,14 @@ private struct RecentCallsView: View {
                 )
             } else {
                 ScrollViewReader { proxy in
-                    List {
+                    List(selection: $selectedRecordID) {
                         ForEach(filteredRecords) { record in
                         HStack(spacing: 12) {
                             ZStack {
                                 Circle()
                                     .fill(iconTint(record).opacity(0.12))
                                 Image(systemName: iconName(record))
-                                    .foregroundStyle(iconTint(record))
+                                    .foregroundStyle(selectedRecordID == record.id ? AnyShapeStyle(.primary) : AnyShapeStyle(iconTint(record)))
                             }
                             .frame(width: 38, height: 38)
                             .accessibilityHidden(true)
@@ -1135,8 +1065,7 @@ private struct RecentCallsView: View {
                         }
                         .padding(.vertical, 4)
                         .contentShape(Rectangle())
-                        .communicationSelectionHighlight(selectedRecordID == record.id)
-                        .onTapGesture { selectedRecordID = record.id }
+                        .communicationListRowInsets()
                         .accessibilityAddTraits(selectedRecordID == record.id ? .isSelected : [])
                         .tag(record.id)
                         .contextMenu {
@@ -1218,7 +1147,7 @@ private struct RecentCallsView: View {
             return
         }
         searchText = ""
-        missedOnly = true
+        missedOnly = false
         selectedRecordID = recordID
         guard let proxy else { return }
         DispatchQueue.main.async {
@@ -1502,7 +1431,7 @@ private struct RecentCallDetailView: View {
                     compact: compact
                 ) {
                     model.selectedRecordingID = recording.id
-                    model.activateFromRail(.recordings)
+                    model.present(number: nil, section: .recordings)
                 }
             }
         }
@@ -1709,7 +1638,7 @@ private struct RecordingsManagementView: View {
 
             Divider()
 
-        List(filteredRecordingRecords) { record in
+        List(filteredRecordingRecords, selection: $selectedRecordingID) { record in
             HStack(spacing: 11) {
                 ZStack {
                     Circle()
@@ -1744,9 +1673,8 @@ private struct RecordingsManagementView: View {
                 }
             }
             .padding(.vertical, 4)
-            .communicationSelectionHighlight(selectedRecordingID == record.id)
+            .communicationListRowInsets()
             .contentShape(Rectangle())
-            .onTapGesture { selectedRecordingID = record.id }
             .accessibilityAddTraits(selectedRecordingID == record.id ? .isSelected : [])
             .tag(record.id)
             .contextMenu {
@@ -1958,6 +1886,7 @@ private struct RecordingsManagementView: View {
 private struct ContactsManagementView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject var contacts: SystemContactStore
+    @Binding var sidebarWidth: CGFloat
     let dial: (String) -> Void
 
     @State private var searchText = ""
@@ -1989,7 +1918,6 @@ private struct ContactsManagementView: View {
                 )
             }
         }
-        .searchable(text: $searchText, prompt: "搜索姓名、号码或公司")
         .sheet(
             isPresented: Binding(
                 get: { editingDraft != nil },
@@ -2040,8 +1968,16 @@ private struct ContactsManagementView: View {
     }
 
     private var authorizedContent: some View {
-        HSplitView {
+        ResizableCommunicationSplit(sidebarWidth: $sidebarWidth) {
             VStack(spacing: 0) {
+                Text(L10n.tr("通讯录"))
+                    .font(.title2.bold())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 16)
+                TextField("搜索姓名、号码或公司", text: $searchText)
+                    .communicationSearchField()
+                    .padding(.horizontal, 14)
                 Picker("分组", selection: $selectedGroupID) {
                     Text("所有联系人").tag(SystemContactGroup.ID?.none)
                     ForEach(contacts.groups) { group in
@@ -2082,7 +2018,8 @@ private struct ContactsManagementView: View {
                         }
                     }
                 }
-                .listStyle(.inset)
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
 
                 HStack {
                     Button {
@@ -2106,10 +2043,11 @@ private struct ContactsManagementView: View {
                 }
                 .padding(10)
             }
-            .frame(minWidth: 170, idealWidth: 195)
-
+            .communicationSidebarColumnStyle()
+        } detail: {
             contactDetail
                 .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
+                .communicationDetailColumnStyle()
         }
         .onAppear {
             if selectedContactID == nil { selectedContactID = filteredContacts.first?.id }

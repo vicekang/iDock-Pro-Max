@@ -80,6 +80,7 @@ final class PhoneWindowModel: ObservableObject {
     ) {
         if number != nil || section != nil || callRecordID != nil || simModuleID != nil {
             setFullCallPresentation(false)
+            pendingListFocusSection = nil
         }
         if let section { selection = section }
         if let callRecordID {
@@ -102,6 +103,9 @@ final class PhoneWindowModel: ObservableObject {
 
 @MainActor
 final class MessagesWindowModel: ObservableObject {
+    // Keyed by both module and address through MessageConversation.ID.
+    // Retain drafts while changing pages, without writing message content to disk.
+    @Published var conversationDrafts: [MessageConversation.ID: String] = [:]
     @Published private(set) var requestSerial = 0
     @Published private(set) var composeSerial = 0
     @Published private(set) var requestedMessageID: SMSMessage.ID?
@@ -132,6 +136,7 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
 
     private weak var appState: AppState?
     private var windows: [Kind: NSWindow] = [:]
+    private lazy var navigationToolbar = IDockToolbarController(model: phoneModel)
 
     private override init() {
         super.init()
@@ -202,7 +207,7 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
         destination: String? = nil
     ) {
         messagesModel.present(messageID: messageID, destination: destination)
-        phoneModel.activateFromRail(.messages)
+        phoneModel.present(number: nil, section: .messages)
         show(.phone)
     }
 
@@ -272,15 +277,16 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
                 .titled,
                 .closable,
                 .miniaturizable,
-                .resizable,
-                .fullSizeContentView
+                .resizable
             ]
             window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
-            window.toolbar = nil
+            window.titleVisibility = .visible
+            if kind == .phone {
+                window.toolbar = navigationToolbar.makeToolbar()
+                window.toolbarStyle = .unified
+            }
             window.titlebarSeparatorStyle = .none
-            // The full-size SwiftUI content replaces the visible title bar, so
-            // let unhandled background regions retain native window dragging.
+            // Let AppKit size the title bar and its glass controls.
             window.isMovable = true
             window.isMovableByWindowBackground = true
             window.isReleasedWhenClosed = false
@@ -303,7 +309,9 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
         }
 
         if kind == .phone {
-            window.title = communicationWindowTitle
+            window.title = IDockBrand.name
+            window.subtitle = communicationWindowTitle
+            navigationToolbar.updateSelection()
         }
 
         NSApplication.shared.setActivationPolicy(.regular)
@@ -315,11 +323,14 @@ final class CommunicationWindowController: NSObject, NSWindowDelegate {
     }
 
     func refreshCommunicationWindowTitle() {
-        windows[.phone]?.title = communicationWindowTitle
+        windows[.phone]?.title = IDockBrand.name
+        windows[.phone]?.subtitle = communicationWindowTitle
+        navigationToolbar.updateSelection()
     }
 
     @objc private func appLanguageDidChange() {
-        windows[.phone]?.title = communicationWindowTitle
+        windows[.phone]?.toolbar = navigationToolbar.makeToolbar()
+        refreshCommunicationWindowTitle()
         windows[.messages]?.title = L10n.tr("短信")
     }
 

@@ -1,14 +1,24 @@
+# iDock Pro Max
+
+A native macOS communication hub for calls, SMS and cellular networking through compatible USB cellular modules, with Codex realtime voice and Apple's Liquid Glass interface. Based on CellDock, preserving its app identity and existing local data.
+
+[Download the preview](https://github.com/vicekang/iDock-Pro-Max/releases) · [Installation and verification](https://github.com/vicekang/iDock-Pro-Max/blob/codex/idock-liquid-glass/docs/IDOCK_PRO_MAX.zh-CN.md) · [UI verification record](https://github.com/vicekang/iDock-Pro-Max/blob/codex/idock-liquid-glass/docs/IDOCK_UI_AUDIT.zh-CN.md)
+
+Current iDock development is on `codex/idock-liquid-glass`. CellDock's original non-commercial license and third-party notices remain in effect.
+
+## Upstream CellDock documentation
+
+---
+
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 > **0.4.5:** prewarm Codex before answering and play a local opening while voice connects. Import your own recording and choose the subsequent AI voice in Settings. See [usage and validation limits](docs/INSTANT_CALL_OPENING.zh-CN.md). Includes the existing [Mac/iPhone USB mode experiment](docs/MAC_IPHONE_AUTO_SWITCH.zh-CN.md).
-
-> **CellDock Codex edition (0.4.5, experimental personal fork).** Adds a local MCP/CLI phone bridge and Chinese voice conversations powered by your existing Codex ChatGPT login. Telephone audio connects directly to Codex native GPT-Live voice over WebRTC; no extra speech model or OpenAI API key is required. See [setup, limitations, and verification](docs/CODEX_PHONE.zh-CN.md). The original CellDock non-commercial license and third-party notices remain in effect. Upstream automatic updates are disabled in this fork's local package.
 
 <p align="center">
   <img src="Resources/app_icon.png" width="128" height="128" alt="CellDock icon">
 </p>
 
-<h1 align="center">CellDock</h1>
+<h2 align="center">CellDock</h2>
 
 <p align="center">
   Use cellular network, SMS, and calls on your Mac.

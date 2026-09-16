@@ -107,6 +107,7 @@ final class CodexOpeningAudio: ObservableObject {
     var displayName: String { customName ?? "默认中文开场白" }
     func setEnabled(_ value: Bool) {
         enabled = value; defaults.set(value, forKey: "codexBridge.openingEnabled")
+        if !value { stopPreview() }
     }
     func clip(recording: Bool) -> CodexOpeningClip? {
         guard enabled, let greeting = customPCM ?? defaultPCM else { return nil }

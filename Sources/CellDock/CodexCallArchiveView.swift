@@ -15,12 +15,12 @@ struct CodexCallArchiveView: View {
             HStack {
                 Text("AI 通话记录").font(.title2.bold())
                 Spacer()
-                Button("完成") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("完成") { dismiss() }.keyboardShortcut(.cancelAction).adaptiveGlassButton()
             }.padding(20)
             Divider()
             HSplitView {
                 VStack {
-                    TextField("搜索号码或对话内容", text: $query).textFieldStyle(.roundedBorder).padding(12)
+                    TextField("搜索号码或对话内容", text: $query).communicationSearchField().padding(12)
                     List(selection: $selection) {
                         ForEach(archive.calls.filter { query.isEmpty || $0.number.contains(query) || $0.transcript.contains { $0.text.localizedCaseInsensitiveContains(query) } }) { call in
                             VStack(alignment: .leading, spacing: 5) {
@@ -29,8 +29,8 @@ struct CodexCallArchiveView: View {
                                 Text(audio(for: call) == nil ? "仅有文字记录" : "录音与文字").foregroundStyle(.secondary)
                             }.font(.caption).padding(.vertical, 5).tag(call.id)
                         }
-                    }
-                }.frame(minWidth: 220, idealWidth: 260, maxWidth: 310)
+                    }.scrollContentBackground(.hidden)
+                }.frame(minWidth: 220, idealWidth: 260, maxWidth: 310).communicationSidebarColumnStyle()
                 ScrollView {
                     if let call = archive.calls.first(where: { $0.id == selection }) {
                         VStack(alignment: .leading, spacing: 18) {
@@ -69,12 +69,14 @@ struct CodexCallArchiveView: View {
                         Text(archive.calls.isEmpty ? "AI 通话结束后，可在这里查看录音和文字。" : "选择一通电话")
                             .foregroundStyle(.secondary).padding(40)
                     }
-                }.frame(minWidth: 460, maxWidth: .infinity, maxHeight: .infinity)
-            }
+                }.frame(minWidth: 460, maxWidth: .infinity, maxHeight: .infinity).communicationDetailColumnStyle()
+            }.padding(8)
             if let error = archive.lastError ?? recordings.lastError {
                 Text(verbatim: error).foregroundStyle(.red).padding(12)
             }
         }
+        .background { IDockWindowBackdrop() }
+        .adaptiveGlassButton()
         .frame(minWidth: 800, idealWidth: 920, minHeight: 550, idealHeight: 660)
         .onAppear { selection = archive.calls.first?.id }
         .confirmationDialog("删除这通电话的文字记录？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {

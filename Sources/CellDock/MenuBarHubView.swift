@@ -141,7 +141,7 @@ struct MenuBarHubView: View {
     }
 
     private var menuDestinationSections: [PhoneWindowSection] {
-        [.messages, .recents, .recordings, .proxy, .sim, .settings]
+        [.messages, .recents, .contacts, .recordings, .proxy, .sim, .settings]
     }
 
     private func destinationButton(_ section: PhoneWindowSection) -> some View {

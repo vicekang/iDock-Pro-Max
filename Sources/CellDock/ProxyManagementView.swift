@@ -44,7 +44,7 @@ struct ProxyManagementView: View {
                 )
                 .frame(maxHeight: .infinity)
             } else {
-                List {
+                List(selection: $selectedID) {
                     ForEach(availableModules) { module in
                         if let imei = module.modem.moduleIMEI {
                             Section(module.selectorTitle) {
@@ -53,9 +53,8 @@ struct ProxyManagementView: View {
                                         configuration: config,
                                         state: controller.runtimeStates[config.id] ?? .disabled
                                     )
-                                    .communicationSelectionHighlight(selectedID == config.id)
+                                    .communicationListRowInsets()
                                     .contentShape(Rectangle())
-                                    .onTapGesture { selectedID = config.id }
                                     .accessibilityAddTraits(
                                         selectedID == config.id ? .isSelected : []
                                     )
@@ -72,9 +71,8 @@ struct ProxyManagementView: View {
                                     state: controller.runtimeStates[config.id]
                                         ?? .stoppedModuleOffline
                                 )
-                                .communicationSelectionHighlight(selectedID == config.id)
+                                .communicationListRowInsets()
                                 .contentShape(Rectangle())
-                                .onTapGesture { selectedID = config.id }
                                 .accessibilityAddTraits(
                                     selectedID == config.id ? .isSelected : []
                                 )
@@ -268,6 +266,9 @@ private struct ProxyEditorView: View {
         Form {
             TextField(L10n.tr("名称"), text: $draft.name)
             Picker(L10n.tr("绑定模组"), selection: $draft.moduleIMEI) {
+                if !modules.contains(where: { $0.modem.moduleIMEI == draft.moduleIMEI }) {
+                    Text(L10n.tr("离线模组")).tag(draft.moduleIMEI)
+                }
                 ForEach(modules) { module in
                     if let imei = module.modem.moduleIMEI {
                         Text(verbatim: module.selectorTitle).tag(imei)

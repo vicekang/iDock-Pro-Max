@@ -200,7 +200,7 @@ struct SIMManagementView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
-                    List {
+                    List(selection: $selectedModuleID) {
                         ForEach(appState.cellularModules) { module in
                             SIMModuleSidebarRow(
                                 module: module,
@@ -209,9 +209,8 @@ struct SIMManagementView: View {
                                 showsIncomingCallsTag: module.modem.imsMode.map { $0 != 0 } ?? false,
                                 showsESIMTag: module.cardKind == .eUICC
                             )
-                            .communicationSelectionHighlight(selectedModuleID == module.id)
+                            .communicationListRowInsets()
                             .contentShape(Rectangle())
-                            .onTapGesture { selectedModuleID = module.id }
                             .accessibilityAddTraits(selectedModuleID == module.id ? .isSelected : [])
                             .id(module.id)
                             .tag(module.id)

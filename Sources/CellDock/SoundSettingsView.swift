@@ -5,8 +5,7 @@ import UniformTypeIdentifiers
 struct SoundSettingsView: View {
     private static let customSoundID = "__custom__"
     private let columns = [
-        GridItem(.flexible(minimum: 0), spacing: 10, alignment: .top),
-        GridItem(.flexible(minimum: 0), spacing: 10, alignment: .top)
+        GridItem(.adaptive(minimum: 180), spacing: 10, alignment: .top)
     ]
 
     @ObservedObject private var alertSounds = AlertSoundService.shared

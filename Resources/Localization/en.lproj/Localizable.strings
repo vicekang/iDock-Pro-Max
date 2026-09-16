@@ -73,7 +73,7 @@
 "通知与权限" = "Notifications & Permissions";
 "启动、外观与菜单栏行为" = "Startup, appearance, and menu bar behavior";
 "查看模块状态并管理通话与短信处理" = "View module status and manage calls and messages";
-"检查 CellDock 的系统访问权限" = "Review CellDock system permissions";
+"检查 CellDock 的系统访问权限" = "Review iDock Pro Max system permissions";
 "隐私保护" = "Privacy";
 "演示隐私保护" = "Presentation Privacy";
 "在界面与系统通知中隐藏联系人、电话号码、短信内容和验证码" = "Hide contacts, phone numbers, message content, and verification codes in the app and system notifications";
@@ -91,21 +91,21 @@
 "切换后立即应用，无需重新启动" = "Changes apply immediately without restarting";
 "启动与菜单栏" = "Startup & Menu Bar";
 "登录时启动" = "Launch at Login";
-"登录 Mac 后可在后台自动运行 CellDock" = "Allow CellDock to run in the background after you log in";
-"登录 Mac 后在后台运行 CellDock" = "CellDock runs in the background after login";
+"登录 Mac 后可在后台自动运行 CellDock" = "Allow iDock Pro Max to run in the background after you log in";
+"登录 Mac 后在后台运行 CellDock" = "iDock Pro Max runs in the background after login";
 "当前应用位置或用户会话不支持登录启动" = "Launch at login is unavailable for the current app location or user session";
 "未连接模块时隐藏菜单栏图标" = "Hide Menu Bar Icon When No Module Is Connected";
 "重新连接模块后自动显示" = "Shows automatically when a module reconnects";
 "模块断开后继续显示状态图标" = "Keep showing the status icon after disconnection";
 "应用操作" = "App Actions";
-"完全退出 CellDock" = "Quit CellDock Completely";
+"完全退出 CellDock" = "Quit iDock Pro Max Completely";
 "关闭窗口不会停止短信、来电和模块监测" = "Closing windows does not stop message, call, or module monitoring";
-"完全退出 CellDock，并停止后台短信、来电和模块监测" = "Quit CellDock and stop background message, call, and module monitoring";
+"完全退出 CellDock，并停止后台短信、来电和模块监测" = "Quit iDock Pro Max and stop background message, call, and module monitoring";
 "声音" = "Sounds";
 "短信提示音" = "Message Sound";
 "来电铃声" = "Ringtone";
 "选择%@" = "Choose %@";
-"音频将复制到 CellDock 的应用支持目录，原文件可以安全移动或删除。" = "The audio file will be copied to CellDock's Application Support folder. The original can then be moved or deleted safely.";
+"音频将复制到 CellDock 的应用支持目录，原文件可以安全移动或删除。" = "The audio file will be copied to iDock Pro Max's Application Support folder. The original can then be moved or deleted safely.";
 "通话时自动录音" = "Automatically Record Calls";
 "通话接通且音频就绪后自动开始，录音仅保存在这台 Mac" = "Start automatically after the call connects and audio is ready; recordings stay on this Mac";
 "短信处理" = "Message Handling";
@@ -154,7 +154,7 @@
 "模块异常" = "Module Error";
 "SIM 1 · 模块未连接" = "SIM 1 · Module Disconnected";
 "刷新模组" = "Refresh Modules";
-"连接设备后，CellDock 会自动识别。" = "CellDock identifies connected devices automatically.";
+"连接设备后，CellDock 会自动识别。" = "iDock Pro Max identifies connected devices automatically.";
 "识别成功后，可在这里管理 SIM、网络和模组设置。" = "After identification, manage SIM, network, and module settings here.";
 "SIM 卡信息" = "SIM Card Information";
 "SIM 状态" = "SIM Status";
@@ -184,7 +184,7 @@
 "发送" = "Send";
 "发送中" = "Sending";
 "删除这条短信？" = "Delete This Message?";
-"删除后这条短信将不再出现在 CellDock 中，此操作无法撤销。" = "This message will be removed from CellDock. This action cannot be undone.";
+"删除后这条短信将不再出现在 CellDock 中，此操作无法撤销。" = "This message will be removed from iDock Pro Max. This action cannot be undone.";
 "选择左侧会话，或新建短信。" = "Select a conversation on the left, or create a new message.";
 "验证码已隐藏" = "Verification Code Hidden";
 
@@ -245,7 +245,7 @@
 "搜索联系人、号码或短信" = "Search contacts, numbers, or messages";
 "收到新短信" = "New Message";
 "短信内容已隐藏" = "Message content is hidden";
-"可直接接听或拒接，也可以打开 CellDock 查看。" = "Answer or decline directly, or open CellDock for more details.";
+"可直接接听或拒接，也可以打开 CellDock 查看。" = "Answer or decline directly, or open iDock Pro Max for more details.";
 "点击查看最近通话。" = "Click to view recent calls.";
 "查看未接来电" = "View Missed Call";
 "查看短信" = "View Message";
@@ -351,13 +351,13 @@
 "“%@”将从此 eUICC 永久移除，之后需要重新下载才能使用。" = "“%@” will be permanently removed from this eUICC and must be downloaded again to use it later.";
 "来电：%@" = "Incoming call: %@";
 "蜂窝通话：%@" = "Cellular call: %@";
-"CellDock：模组未连接" = "CellDock: Module disconnected";
-"CellDock：USB 枚举中" = "CellDock: Enumerating USB";
-"CellDock：模组初始化中" = "CellDock: Initializing module";
-"CellDock：模组需要配置" = "CellDock: Module requires setup";
-"CellDock：模组正在重启" = "CellDock: Restarting module";
-"CellDock：模组正在重新连接" = "CellDock: Reconnecting module";
-"CellDock：模组异常" = "CellDock: Module error";
+"CellDock：模组未连接" = "iDock Pro Max: Module disconnected";
+"CellDock：USB 枚举中" = "iDock Pro Max: Enumerating USB";
+"CellDock：模组初始化中" = "iDock Pro Max: Initializing module";
+"CellDock：模组需要配置" = "iDock Pro Max: Module requires setup";
+"CellDock：模组正在重启" = "iDock Pro Max: Restarting module";
+"CellDock：模组正在重新连接" = "iDock Pro Max: Reconnecting module";
+"CellDock：模组异常" = "iDock Pro Max: Module error";
 "蜂窝数据已关闭" = "Cellular data off";
 "蜂窝数据等待模组" = "Cellular data waiting for module";
 "蜂窝数据连接中" = "Connecting cellular data";
@@ -366,7 +366,7 @@
 "蜂窝数据恢复中" = "Recovering cellular data";
 "蜂窝数据异常" = "Cellular data error";
 "蜂窝网络" = "Cellular network";
-"CellDock：模块已连接 · %@" = "CellDock: Module connected · %@";
+"CellDock：模块已连接 · %@" = "iDock Pro Max: Module connected · %@";
 "昨天" = "Yesterday";
 "呼入" = "Incoming";
 "呼出" = "Outgoing";
@@ -452,7 +452,7 @@
 "登录账户、激活设备并检查离线授权" = "Sign in, activate this Mac, and check offline access";
 "设备授权" = "Device License";
 "正在检查授权" = "Checking License";
-"CellDock 已激活" = "CellDock Is Activated";
+"CellDock 已激活" = "iDock Pro Max Is Activated";
 "授权服务尚未配置" = "License Service Not Configured";
 "授权需要重新验证" = "License Verification Required";
 "这台 Mac 尚未激活" = "This Mac Is Not Activated";
@@ -630,12 +630,12 @@
 "CDC-ECM 写入后的读回校验失败，未重启模块。" = "The readback verification after writing to CDC-ECM failed and the module was not restarted.";
 "CLCC 中没有找到本次通话。" = "CLCC did not contain this call.";
 "CSQ 换算 · %lld dBm" = "CSQ Conversion · %lld dBm";
-"CellDock 会在%@中写入并回读 IMS=%lld，校验成功后再重启模块。蜂窝网络将短暂中断。" = "CellDock will use %@ to write and read back IMS=%lld. After verification, the module will restart and cellular service will be briefly interrupted.";
-"CellDock 将把 usbnet 从 0 切换为 1。写入回读成功后模块会重启一次，蜂窝网络将短暂中断。" = "CellDock will switch usbnet from 0 to 1. After a successful write and readback, the module will restart and cellular service will be briefly interrupted.";
-"CellDock 必须位于“应用程序”文件夹中，才能安全安装网络 helper。" = "CellDock must be located in the Applications folder to safely install the network helper.";
-"CellDock 授权签名公钥无效。" = "The CellDock license-signing public key is invalid.";
-"CellDock 目标值" = "CellDock target value";
-"CellDock 需要安装一次网络 helper。以后切换蜂窝网络将不再要求密码。" = "CellDock needs to install a network helper once. Switching cellular networks will not require a password afterward.";
+"CellDock 会在%@中写入并回读 IMS=%lld，校验成功后再重启模块。蜂窝网络将短暂中断。" = "iDock Pro Max will use %@ to write and read back IMS=%lld. After verification, the module will restart and cellular service will be briefly interrupted.";
+"CellDock 将把 usbnet 从 0 切换为 1。写入回读成功后模块会重启一次，蜂窝网络将短暂中断。" = "iDock Pro Max will switch usbnet from 0 to 1. After a successful write and readback, the module will restart and cellular service will be briefly interrupted.";
+"CellDock 必须位于“应用程序”文件夹中，才能安全安装网络 helper。" = "iDock Pro Max must be located in the Applications folder to safely install the network helper.";
+"CellDock 授权签名公钥无效。" = "The iDock Pro Max license-signing public key is invalid.";
+"CellDock 目标值" = "iDock Pro Max target value";
+"CellDock 需要安装一次网络 helper。以后切换蜂窝网络将不再要求密码。" = "iDock Pro Max needs to install a network helper once. Switching cellular networks will not require a password afterward.";
 "CoreAudio 启动后，本次 active CLCC 已无法确认。" = "The active CLCC could no longer be confirmed after CoreAudio started.";
 "D4 helper 已退出，但 T/T/B 路由回滚未确认。" = "D4 helper exited but T/T/B route rollback not acknowledged.";
 "D4 语音 helper 未确认正常退出；为保留 mixer 回滚，没有发送 SIGKILL。" = "The D4 voice helper did not confirm a clean exit. SIGKILL was not sent so the mixer rollback could be preserved.";
@@ -709,7 +709,7 @@
 "USB 身份和 CDC‑ECM 均已通过检查，可以开始使用。" = "USB identity and CDC‑ECM passed verification. The module is ready to use.";
 "USB 身份和 CDC‑ECM 已通过检查；请再确认 SIM 卡已正确插入。" = "USB identity and CDC‑ECM passed verification. Confirm that the SIM card is inserted correctly.";
 "USB 身份已转换，但 CDC-ECM 写入失败；未重启。" = "USB identity converted, but CDC-ECM write failed; no reboot.";
-"USBCFG 写入响应不明确，CellDock 未自动重试；正在等待 USB 重新枚举并回读实际状态。" = "USBCFG write response is ambiguous, CellDock is not retrying automatically; waiting for USB to re-enumerate and read back actual status.";
+"USBCFG 写入响应不明确，CellDock 未自动重试；正在等待 USB 重新枚举并回读实际状态。" = "USBCFG write response is ambiguous, iDock Pro Max is not retrying automatically; waiting for USB to re-enumerate and read back actual status.";
 "[二进制短信] %@" = "[Binary SMS] %@";
 "eSIM 名称应为 1–64 个字符。" = "eSIM name should be 1–64 characters.";
 "eSIM 命令未取得模块独占访问权。" = "The eSIM command did not obtain exclusive access to the module.";
@@ -739,7 +739,7 @@
 "中国移动香港" = "China Mobile Hong Kong";
 "中国联通" = "China Unicom";
 "井号" = "Pound";
-"仅当原值精确匹配已验证配置时执行。CellDock 会先解锁模组，再转换 USB 身份并开启 ADB、CDC‑ECM 与通话音频，逐项回读成功后才重启。" = "This runs only when the original value exactly matches a verified configuration. CellDock unlocks the module, converts its USB identity, enables ADB, CDC‑ECM, and call audio, verifies each value, then restarts.";
+"仅当原值精确匹配已验证配置时执行。CellDock 会先解锁模组，再转换 USB 身份并开启 ADB、CDC‑ECM 与通话音频，逐项回读成功后才重启。" = "This runs only when the original value exactly matches a verified configuration. iDock Pro Max unlocks the module, converts its USB identity, enables ADB, CDC‑ECM, and call audio, verifies each value, then restarts.";
 "以太网" = "Ethernet";
 "住宅" = "Home";
 "你取消了网络 helper 的首次安装。" = "You canceled the initial installation of the network helper.";
@@ -835,7 +835,7 @@
 "已切换到%@上网。" = "Switched cellular data to %@.";
 "已发送" = "Sent";
 "已安装的网络 helper 不是当前版本。" = "The installed network helper is not the current version.";
-"已安装的网络 helper 协议版本为 %lld，但 CellDock 需要 %lld。请重新安装最新版。" = "The installed network helper protocol version is %lld, but CellDock requires %lld. Please reinstall the latest version.";
+"已安装的网络 helper 协议版本为 %lld，但 CellDock 需要 %lld。请重新安装最新版。" = "The installed network helper protocol version is %lld, but iDock Pro Max requires %lld. Please reinstall the latest version.";
 "已就绪" = "Ready";
 "已展开" = "Expanded";
 "已开启接收来电，模块正在重启。" = "Incoming calls are on. Restarting the module.";
@@ -847,12 +847,12 @@
 "已有通话录音正在进行。" = "A call recording is in progress.";
 "已确认发送 %lld/%lld 个分片；接口随后断开，请勿直接重发整条长短信。" = "Confirmed %lld of %lld segments sent. The interface then disconnected; don't resend the entire long message.";
 "已确认发送 %lld/%lld 个分片；请勿直接重发整条长短信，以免前面的分片重复。" = "Confirmed %lld of %lld segments sent. Don't resend the entire long message, or earlier segments may be duplicated.";
-"已确认安全原值，可一键转换为 CellDock 兼容配置。" = "The original value is verified as safe and can be converted to a CellDock-compatible configuration.";
+"已确认安全原值，可一键转换为 CellDock 兼容配置。" = "The original value is verified as safe and can be converted to a iDock Pro Max-compatible configuration.";
 "已结束占用模块控制接口的 %@（PID %lld）。" = "Ended %@ (PID %lld), which was using the module control interface.";
 "已识别 QDC507，但 macOS 联网所需的 CDC‑ECM 尚未开启。" = "QDC507 is recognized, but CDC‑ECM required for macOS networking is not turned on.";
 "已转换为 2C7C:0125，并启用 ADB、USB 通话音频与 CDC-ECM，模块正在重新枚举。" = "Converted to 2C7C:0125 and enabled ADB, USB call audio, and CDC-ECM. Re-enumerating the module.";
 "已输入 %@" = "Entered %@";
-"应用内置声音 %@ 不存在，请重新安装 CellDock。" = "Built-in sound %@ is missing. Reinstall CellDock.";
+"应用内置声音 %@ 不存在，请重新安装 CellDock。" = "Built-in sound %@ is missing. Reinstall iDock Pro Max.";
 "应用包中缺少 QDC507 通话组件。" = "The app bundle is missing the QDC507 call component.";
 "应用包中缺少通话组件：%@" = "The app bundle is missing a call component: %@";
 "开启后建立 CDC‑ECM 数据连接" = "Establish a CDC‑ECM data connection when enabled";
@@ -862,13 +862,13 @@
 "异常" = "Error";
 "当前" = "Current";
 "当前 AT 接口不是已锁定的 2CA3:4006 模块，未执行转换。" = "The current AT interface is not a locked 2CA3:4006 module and no conversion has been performed.";
-"当前 CellDock 安装包缺少 %@，请重新安装最新版。" = "This CellDock installation is missing %@. Reinstall the latest version.";
+"当前 CellDock 安装包缺少 %@，请重新安装最新版。" = "This iDock Pro Max installation is missing %@. Reinstall the latest version.";
 "当前 SIM 卡" = "Current SIM card";
-"当前 USBCFG 不是已验证的 DJI 原值、过渡值或 CellDock 目标值，拒绝写入。" = "The current USBCFG is not a verified DJI original value, transition value, or CellDock target value. Refusing to write.";
+"当前 USBCFG 不是已验证的 DJI 原值、过渡值或 CellDock 目标值，拒绝写入。" = "The current USBCFG is not a verified DJI original value, transition value, or iDock Pro Max target value. Refusing to write.";
 "当前 usbnet=%@" = "Current usbnet=%@";
 "当前不能发起新的通话。" = "A new call can't be started right now.";
 "当前为基础模式" = "Basic Mode";
-"当前值为 %@。它不等于已记录的 DJI 原值，CellDock 已拒绝一键转换。" = "The current value is %@. It is not equal to the recorded DJI original value and CellDock has rejected the one-click conversion.";
+"当前值为 %@。它不等于已记录的 DJI 原值，CellDock 已拒绝一键转换。" = "The current value is %@. It is not equal to the recorded DJI original value and iDock Pro Max has rejected the one-click conversion.";
 "当前卡片不是 eUICC。" = "The current card is not an eUICC.";
 "当前固件未确认支持 USB 原始语音。" = "The current firmware has not confirmed USB raw voice support.";
 "当前应用位置或用户会话不支持登录启动。" = "Launch at Login is unavailable for the current app location or user session.";
@@ -881,7 +881,7 @@
 "当前没有启用蜂窝数据；请通过顶部地球按钮选择" = "No module is selected for cellular data. Use the globe button above to select one";
 "当前没有检测到可结束的接口占用。" = "No process using the interface that can be ended was detected.";
 "当前没有正在进行的通话录音。" = "No call recording is in progress.";
-"当前身份为 %@，CellDock 只处理已验证的 DJI/QDC507 模块。" = "The current identity is %@. CellDock supports only verified DJI/QDC507 modules.";
+"当前身份为 %@，CellDock 只处理已验证的 DJI/QDC507 模块。" = "The current identity is %@. iDock Pro Max supports only verified DJI/QDC507 modules.";
 "当前通信模组尚未就绪。" = "The current communication module is not ready.";
 "当前通信模组未连接" = "Current Communication Module Disconnected";
 "当前通话状态尚未清理完成，不能重新初始化。" = "Call state cleanup is incomplete. Reinitialization is unavailable.";
@@ -1077,10 +1077,10 @@
 "模块拒绝转换 USB 身份。" = "The module refused to convert the USB identity.";
 "模块拒绝重置 USB 语音会话。" = "The module refused to reset the USB voice session.";
 "模块接口已断开，短信未确认发送。" = "The module interface disconnected. The message was not confirmed sent.";
-"模块控制接口正被 adb、Android Studio 或另一份 CellDock 占用；CellDock 已请求对方释放，但对方仍在使用。" = "The module control interface is in use by adb, Android Studio, or another copy of CellDock. CellDock requested its release, but it is still in use.";
-"模块控制接口正被其他 ADB 客户端占用；CellDock 将自动重试（%lld/5）。" = "The module control interface is in use by another ADB client; CellDock will automatically retry (%lld/5).";
+"模块控制接口正被 adb、Android Studio 或另一份 CellDock 占用；CellDock 已请求对方释放，但对方仍在使用。" = "The module control interface is in use by adb, Android Studio, or another copy of iDock Pro Max. iDock Pro Max requested its release, but it is still in use.";
+"模块控制接口正被其他 ADB 客户端占用；CellDock 将自动重试（%lld/5）。" = "The module control interface is in use by another ADB client; iDock Pro Max will automatically retry (%lld/5).";
 "模块未建立通话。" = "The module has no active call.";
-"模块未报告 QPCMV 0-2 能力，拒绝启用 CellDock USB 音频配置。" = "The module did not report QPCMV 0–2 support. CellDock USB audio configuration was not enabled.";
+"模块未报告 QPCMV 0-2 能力，拒绝启用 CellDock USB 音频配置。" = "The module did not report QPCMV 0–2 support. iDock Pro Max USB audio configuration was not enabled.";
 "模块未报告 USB 语音能力" = "Module Did Not Report USB Voice Support";
 "模块未接受 ADB CNXN（command=0x%08X）。" = "The module rejected ADB CNXN (command=0x%08X).";
 "模块未接受通话命令。" = "The module rejected the call command.";
@@ -1276,7 +1276,7 @@
 "软恢复未成功，已自动重启模组并等待 ECM 重新枚举。" = "Soft recovery failed. The module restarted automatically; waiting for ECM to re-enumerate.";
 "运营商信息未提供" = "Carrier Information Not Available";
 "这里只支持单行 AT 命令，不能包含换行或 NUL。" = "Only single-line AT commands are supported here. They cannot contain line breaks or NUL.";
-"连接 QDC507 后，CellDock 会自动检查 USB 身份、联网模式和 SIM 状态。" = "Once the QDC507 is connected, CellDock automatically checks USB identity, networking mode, and SIM status.";
+"连接 QDC507 后，CellDock 会自动检查 USB 身份、联网模式和 SIM 状态。" = "Once the QDC507 is connected, iDock Pro Max automatically checks USB identity, networking mode, and SIM status.";
 "连接 SM-DP+ 服务器超时，请检查网络后重试。" = "The connection to the SM-DP+ server timed out. Check the network and try again.";
 "连接并初始化模组后读取" = "Read after connecting and initializing the module";
 "连接建立后自动检查" = "Automatically checks after connection is established";
@@ -1317,7 +1317,7 @@
 "通过 %@ 发送" = "Send via %@";
 "通过当前 SIM 卡呼叫" = "Call Using Current SIM Card";
 "通过顶部地球按钮可选择此模组上网" = "Use the globe button above to select this module for cellular data";
-"重启前无法再次确认 CellDock USB 目标配置，已停止。" = "The operation stopped because CellDock could not reconfirm the target USB configuration before restarting.";
+"重启前无法再次确认 CellDock USB 目标配置，已停止。" = "The operation stopped because iDock Pro Max could not reconfirm the target USB configuration before restarting.";
 "重启并关闭" = "Restart and Turn Off";
 "重启并开启" = "Restart and Turn On";
 "重新连接中" = "Reconnecting";
@@ -1351,8 +1351,8 @@
 "偏好设置" = "Preferences";
 "声音、通话与短信" = "Sounds, Calls, and Messages";
 "外观、语言与启动" = "Appearance, Language, and Startup";
-"检查版本并选择更新频道" = "Check the Version and Choose an Update Channel";
-"版本与更新频道" = "Version and Update Channel";
+"检查版本并选择更新频道" = "View version information and available updates";
+"版本与更新频道" = "Version and updates";
 "管理授权与试用" = "Manage License and Trial";
 "系统" = "System";
 "购买授权与设备激活" = "Purchase a License and Activate Devices";
@@ -1387,7 +1387,7 @@
 "无法建立多模组蜂窝网络配置。" = "Unable to create the multi-module cellular network configuration.";
 "无法编码蜂窝网络配置。" = "Unable to encode the cellular network configuration.";
 "退出" = "Quit";
-"退出 CellDock" = "Quit CellDock";
+"退出 CellDock" = "Quit iDock Pro Max";
 "网络 helper 已安装，但版本仍不是当前版本。请重新安装最新版。" = "The network helper is installed, but its version is still outdated. Reinstall the latest version.";
 "新建代理" = "New Proxy";
 "代理详情" = "Proxy Details";
@@ -1426,7 +1426,7 @@
 "在默认浏览器中打开授权购买页面" = "Open the license purchase page in your default browser";
 "打开授权购买页面" = "Open the license purchase page";
 "Android Telephony" = "Android Telephony";
-"CellDock 只调用模组厂商或 Android Telephony 提供的原生控制接口；ePDG、SIM 鉴权和 IMS 注册均由模组完成。运营商必须已为当前号码开通 VoWiFi。" = "CellDock only invokes the native controls provided by the module vendor or Android Telephony. The module handles ePDG, SIM authentication, and IMS registration. Your carrier must enable VoWiFi for this number.";
+"CellDock 只调用模组厂商或 Android Telephony 提供的原生控制接口；ePDG、SIM 鉴权和 IMS 注册均由模组完成。运营商必须已为当前号码开通 VoWiFi。" = "iDock Pro Max only invokes the native controls provided by the module vendor or Android Telephony. The module handles ePDG, SIM authentication, and IMS registration. Your carrier must enable VoWiFi for this number.";
 "IMS 注册" = "IMS registration";
 "Wi‑Fi 接口" = "Wi-Fi interface";
 "VoWiFi" = "VoWiFi";
@@ -1480,7 +1480,7 @@
 "正在启动" = "Starting";
 "错误" = "Error";
 "软件 VoWiFi 运行时" = "Software VoWiFi runtime";
-"CellDock 通过模组侧运行时控制器启动 vowifi-go；SIM/ISIM AKA、SWu/ePDG、IKEv2/IPsec 和 IMS 注册由该运行时编排。此后端仍处于实验阶段，需要真实 SIM、运营商和 ePDG 联调验证。" = "CellDock starts vowifi-go through a module-side runtime controller. The runtime orchestrates SIM/ISIM AKA, SWu/ePDG, IKEv2/IPsec, and IMS registration. This backend remains experimental and requires validation with a real SIM, carrier, and ePDG.";
+"CellDock 通过模组侧运行时控制器启动 vowifi-go；SIM/ISIM AKA、SWu/ePDG、IKEv2/IPsec 和 IMS 注册由该运行时编排。此后端仍处于实验阶段，需要真实 SIM、运营商和 ePDG 联调验证。" = "iDock Pro Max starts vowifi-go through a module-side runtime controller. The runtime orchestrates SIM/ISIM AKA, SWu/ePDG, IKEv2/IPsec, and IMS registration. This backend remains experimental and requires validation with a real SIM, carrier, and ePDG.";
 "Mac 当前没有可用的 Wi-Fi 出口。" = "No usable Wi-Fi egress is available on this Mac.";
 "VoWiFi SOCKS5 中继未能启动。" = "The VoWiFi SOCKS5 relay could not start.";
 "模组 ECM 地址不可用，无法建立 VoWiFi 中继。" = "The module ECM address is unavailable, so the VoWiFi relay cannot be created.";
@@ -1533,7 +1533,7 @@
 "已通过 SOCKS5 注册" = "Registered via SOCKS5";
 "会话已失效" = "Session is stale";
 "运行时故障" = "Runtime fault";
-"模组正在运行一个由其他会话启动的运行时，其 SOCKS5 中继已不存在。CellDock 会自动重建会话。" = "The module is running a runtime started by another session, and its SOCKS5 relay no longer exists. CellDock will rebuild the session automatically.";
+"模组正在运行一个由其他会话启动的运行时，其 SOCKS5 中继已不存在。CellDock 会自动重建会话。" = "The module is running a runtime started by another session, and its SOCKS5 relay no longer exists. iDock Pro Max will rebuild the session automatically.";
 "VoWiFi 会话配置包含无法安全传输的字符。" = "The VoWiFi session configuration contains characters that cannot be transferred safely.";
 "连接并识别蜂窝模组后即可检测 VoWiFi 运行时。" = "Connect and identify a cellular module to check its VoWiFi runtime.";
 "选择一个模组以查看 VoWiFi 运行时和注册状态。" = "Select a module to view its VoWiFi runtime and registration status.";
@@ -1544,13 +1544,13 @@
 "尚未注册" = "Not registered yet";
 "IMS 状态码" = "IMS status code";
 "工作方式" = "How it works";
-"CellDock 在 Mac 上开一个仅模组可达的 SOCKS5 中继，并让模组侧 vowifi-go 运行时通过它把 IKEv2 与 ESP 送到运营商 ePDG。SIM/ISIM AKA、SWu 隧道和 IMS 注册都由该运行时完成；此后端仍处于实验阶段，需要真实 SIM、运营商和 ePDG 联调验证。" = "CellDock opens a SOCKS5 relay on this Mac that only the module can reach, and the module-side vowifi-go runtime sends IKEv2 and ESP to the carrier ePDG through it. SIM/ISIM AKA, the SWu tunnel, and IMS registration are all handled by that runtime. This backend is still experimental and needs validation with a real SIM, carrier, and ePDG.";
+"CellDock 在 Mac 上开一个仅模组可达的 SOCKS5 中继，并让模组侧 vowifi-go 运行时通过它把 IKEv2 与 ESP 送到运营商 ePDG。SIM/ISIM AKA、SWu 隧道和 IMS 注册都由该运行时完成；此后端仍处于实验阶段，需要真实 SIM、运营商和 ePDG 联调验证。" = "iDock Pro Max opens a SOCKS5 relay on this Mac that only the module can reach, and the module-side vowifi-go runtime sends IKEv2 and ESP to the carrier ePDG through it. SIM/ISIM AKA, the SWu tunnel, and IMS registration are all handled by that runtime. This backend is still experimental and needs validation with a real SIM, carrier, and ePDG.";
 "直接使用 Mac 网络出口" = "Use the Mac network egress directly";
 "上游必须是支持 UDP ASSOCIATE 的 SOCKS5 代理；IKEv2 与 ESP 共用同一个 UDP 关联，以保持 ePDG 看到的 NAT 映射稳定。" = "The upstream must be a SOCKS5 proxy that supports UDP ASSOCIATE. IKEv2 and ESP share one UDP association so the ePDG keeps seeing a single stable NAT mapping.";
 "模组拒绝启动 VoWiFi 运行时。" = "The module refused to start the VoWiFi runtime.";
 "模组没有确认新的 VoWiFi 会话。" = "The module did not confirm the new VoWiFi session.";
 "模组拒绝停止 VoWiFi 运行时。" = "The module refused to stop the VoWiFi runtime.";
-"CellDock 已停止。" = "CellDock has stopped.";
+"CellDock 已停止。" = "iDock Pro Max has stopped.";
 "SIM AT 命令失败。" = "The SIM AT command failed.";
 "VoWiFi SIM 鉴权桥尚未就绪。" = "The VoWiFi SIM authentication bridge is not ready.";
 "VoWiFi helper 操作超时。" = "The VoWiFi helper operation timed out.";
@@ -1592,7 +1592,7 @@
 "初始化失败 · %@" = "Initialization Failed · %@";
 "原生 QPCMV" = "Native QPCMV";
 "QDC507 动态注入" = "QDC507 Dynamic Injection";
-"AT+QPCMV=? 未报告 CellDock 所需的原始 PCM 模式。" = "AT+QPCMV=? did not report the raw PCM mode required by CellDock.";
+"AT+QPCMV=? 未报告 CellDock 所需的原始 PCM 模式。" = "AT+QPCMV=? did not report the raw PCM mode required by iDock Pro Max.";
 "当前 Quectel 固件不支持 AT+QPCMV。" = "The current Quectel firmware does not support AT+QPCMV.";
 "无法完成 AT+QPCMV 能力探测。" = "Could not complete the AT+QPCMV capability probe.";
 "原生 QPCMV 初始化失败。" = "Native QPCMV initialization failed.";
@@ -1605,15 +1605,15 @@
 "USB 厂商和产品字符串无法识别，未执行持久配置写入。" = "The USB vendor and product strings are unrecognized; persistent configuration was not changed.";
 "无法确认模块中没有语音通话，未执行配置。" = "Could not confirm that the module has no active voice call; configuration was not changed.";
 "无法可靠读取当前 USBCFG，未执行写入。" = "Could not reliably read the current USBCFG; nothing was written.";
-"当前 USBCFG 不属于已验证的 Quectel 原值或 CellDock 目标值，拒绝写入。" = "The current USBCFG is neither a verified Quectel source nor the CellDock target; the write was refused.";
+"当前 USBCFG 不属于已验证的 Quectel 原值或 CellDock 目标值，拒绝写入。" = "The current USBCFG is neither a verified Quectel source nor the iDock Pro Max target; the write was refused.";
 "模块已经使用完整 USB 配置和 CDC-ECM 模式。" = "The module already uses the full USB configuration and CDC-ECM mode.";
 "CDC-ECM 写入后的读回校验失败，未继续修改 USB 配置。" = "CDC-ECM readback verification failed; the USB configuration was not modified further.";
 "模块拒绝写入完整 USB 配置。" = "The module rejected the full USB configuration.";
-"USBCFG 已写入，但模块在回读前重新枚举；CellDock 不会重复写入，将在重连后核对。" = "USBCFG was written, but the module re-enumerated before readback. CellDock will not write it again and will verify after reconnecting.";
+"USBCFG 已写入，但模块在回读前重新枚举；CellDock 不会重复写入，将在重连后核对。" = "USBCFG was written, but the module re-enumerated before readback. iDock Pro Max will not write it again and will verify after reconnecting.";
 "USBCFG 写入后的精确读回校验失败，未重启模块。" = "Exact USBCFG readback verification failed; the module was not restarted.";
 "已写入完整 USB 配置并启用 CDC-ECM，模块正在重新枚举。" = "The full USB configuration and CDC-ECM are enabled; the module is re-enumerating.";
-"CellDock 将写入 usbnet=1 和完整 USBCFG。逐项回读成功后模块会重启一次；Quectel 设备不会注入语音内核模块。" = "CellDock will write usbnet=1 and the full USBCFG, verify each value, then restart the module once. Quectel devices will not receive injected voice kernel modules.";
-"CellDock 将确认完整 USBCFG 并把 usbnet 切换为 1。写入回读成功后模块会重启一次。" = "CellDock will confirm the full USBCFG, switch usbnet to 1, verify the values, then restart the module once.";
+"CellDock 将写入 usbnet=1 和完整 USBCFG。逐项回读成功后模块会重启一次；Quectel 设备不会注入语音内核模块。" = "iDock Pro Max will write usbnet=1 and the full USBCFG, verify each value, then restart the module once. Quectel devices will not receive injected voice kernel modules.";
+"CellDock 将确认完整 USBCFG 并把 usbnet 切换为 1。写入回读成功后模块会重启一次。" = "iDock Pro Max will confirm the full USBCFG, switch usbnet to 1, verify the values, then restart the module once.";
 "已识别 Quectel 模块，需要启用完整 USB 功能和 macOS 所需的 CDC‑ECM。" = "A Quectel module was detected. Full USB functions and the CDC-ECM mode required by macOS must be enabled.";
 "已识别模块，但 macOS 联网所需的 CDC‑ECM 尚未开启。" = "The module was detected, but CDC-ECM required by macOS is not enabled.";
 "内置声音" = "Built-in Sounds";
@@ -1656,8 +1656,8 @@
 "HTTP %d：%@" = "HTTP %d: %@";
 "Webhook AccessToken" = "Webhook Access Token";
 "Webhook 地址" = "Webhook URL";
-"[CellDock] 新短信" = "[CellDock] New Message";
-"[CellDock] 测试推送" = "[CellDock] Test Notification";
+"[CellDock] 新短信" = "[iDock Pro Max] New Message";
+"[CellDock] 测试推送" = "[iDock Pro Max] Test Notification";
 "access_token 参数的值" = "Value of the access_token parameter";
 "上次转发失败" = "Last forwarding failed";
 "上次转发成功" = "Last forwarding succeeded";
@@ -1676,7 +1676,7 @@
 "测试消息已发送，请去对应渠道确认收到。" = "The test message was sent. Check the selected channel to confirm delivery.";
 "短信转发" = "Message Forwarding";
 "签名密钥（可选）" = "Signing Secret (Optional)";
-"这是一条来自 CellDock 短信转发功能的测试消息。" = "This is a test message from CellDock message forwarding.";
+"这是一条来自 CellDock 短信转发功能的测试消息。" = "This is a test message from iDock Pro Max message forwarding.";
 "配置 Bark" = "Configure Bark";
 "配置…" = "Configure…";
 "配置里的地址无效" = "The configured URL is invalid";
@@ -1688,3 +1688,25 @@
 "VoWiFi 网络服务不可用" = "VoWiFi network service unavailable";
 
 "网络服务不可用" = "Network service unavailable";
+
+/* iDock Pro Max */
+"个人通信中心" = "Personal phone center";
+"Codex 原生语音 · Liquid Glass" = "Codex native voice · Liquid Glass";
+"GitHub 发布版本" = "GitHub releases";
+"基于开源项目 CellDock 构建。" = "Built on the open-source CellDock project.";
+"查看更新" = "View updates";
+"查看此定制版本的更新与安装包。" = "Find updates and installers for this custom edition.";
+"版本与更新" = "Version and updates";
+
+/* Native window refinement */
+"AI 接听" = "AI Answering";
+"来电接听、音色与开场白" = "Incoming calls, voice and greeting";
+"锁屏与后台运行" = "Lock Screen & Background";
+"自定义开场白" = "Customize Greeting";
+"来电接听" = "Incoming Calls";
+"开场白" = "Greeting";
+"AI 通话记录与文字" = "AI Call History & Transcripts";
+
+"正在测试 Codex 原生语音" = "Testing Codex native voice";
+
+"测试 Codex 原生语音" = "Test Codex native voice";

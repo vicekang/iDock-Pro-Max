@@ -5,7 +5,7 @@ import SwiftUI
 enum CommunicationUI {
     static let railWidth: CGFloat = 76
     static let sidebarWidth: CGFloat = 280
-    static let sidebarMinimumWidth: CGFloat = 210
+    static let sidebarMinimumWidth: CGFloat = 260
     static let sidebarMaximumWidth: CGFloat = 420
 
     static func listTimestamp(_ date: Date, now: Date = Date()) -> String {
@@ -23,12 +23,11 @@ enum CommunicationUI {
     }
 }
 
+/// Native split navigation supplies the floating Liquid Glass sidebar on
+/// macOS 26. Do not place a legacy sidebar material underneath its content.
 struct ResizableCommunicationSplit<Sidebar: View, Detail: View>: View {
     @Binding var sidebarWidth: CGFloat
-    @State private var dragStartWidth: CGFloat?
-    @State private var liveSidebarWidth: CGFloat
-    @State private var isDragging = false
-    @State private var isDividerHovered = false
+    @State private var initialSidebarWidth: CGFloat
     private let sidebar: Sidebar
     private let detail: Detail
 
@@ -38,92 +37,109 @@ struct ResizableCommunicationSplit<Sidebar: View, Detail: View>: View {
         @ViewBuilder detail: () -> Detail
     ) {
         _sidebarWidth = sidebarWidth
-        _liveSidebarWidth = State(initialValue: sidebarWidth.wrappedValue)
+        _initialSidebarWidth = State(initialValue: max(CommunicationUI.sidebarMinimumWidth, sidebarWidth.wrappedValue))
         self.sidebar = sidebar()
         self.detail = detail()
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            sidebar.frame(width: liveSidebarWidth)
-
-            detail
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .overlay(alignment: .leading) {
-                    Color.clear
-                        .frame(width: 9)
-                        .contentShape(Rectangle())
-                        .onHover(perform: dividerHoverChanged)
-                        .gesture(resizeGesture)
+        NavigationSplitView(columnVisibility: .constant(.all)) {
+            sidebar
+                .frame(
+                    minWidth: CommunicationUI.sidebarMinimumWidth,
+                    idealWidth: initialSidebarWidth,
+                    maxWidth: CommunicationUI.sidebarMaximumWidth,
+                    maxHeight: .infinity
+                )
+                .navigationSplitViewColumnWidth(
+                    min: CommunicationUI.sidebarMinimumWidth,
+                    ideal: initialSidebarWidth,
+                    max: CommunicationUI.sidebarMaximumWidth
+                )
+                .background {
+                    CommunicationSplitWidthObserver(width: $sidebarWidth)
                 }
+        } detail: {
+            detail.frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
         }
-        .onChange(of: sidebarWidth) { _, newWidth in
-            guard !isDragging else { return }
-            liveSidebarWidth = clamped(newWidth)
-        }
-        .onDisappear {
-            if isDividerHovered || isDragging {
-                NSCursor.arrow.set()
-            }
-        }
-    }
-
-    private var resizeGesture: some Gesture {
-        DragGesture(minimumDistance: 0, coordinateSpace: .global)
-            .onChanged { value in
-                let start = dragStartWidth ?? liveSidebarWidth
-                if dragStartWidth == nil {
-                    dragStartWidth = start
-                    isDragging = true
-                    NSCursor.resizeLeftRight.set()
-                }
-                var transaction = Transaction()
-                transaction.animation = nil
-                withTransaction(transaction) {
-                    liveSidebarWidth = clamped(start + value.translation.width)
-                }
-            }
-            .onEnded { _ in
-                sidebarWidth = liveSidebarWidth
-                dragStartWidth = nil
-                isDragging = false
-                (isDividerHovered ? NSCursor.resizeLeftRight : NSCursor.arrow).set()
-            }
-    }
-
-    private func dividerHoverChanged(_ hovering: Bool) {
-        isDividerHovered = hovering
-        if hovering || isDragging {
-            NSCursor.resizeLeftRight.set()
-        } else {
-            NSCursor.arrow.set()
-        }
-    }
-
-    private func clamped(_ width: CGFloat) -> CGFloat {
-        min(
-            CommunicationUI.sidebarMaximumWidth,
-            max(CommunicationUI.sidebarMinimumWidth, width)
-        )
+        .navigationSplitViewStyle(.balanced)
+        .toolbar(removing: .sidebarToggle)
     }
 }
 
-private struct CommunicationSidebarMaterial: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let effectView = NSVisualEffectView()
-        configure(effectView)
-        return effectView
+/// Native pane widths include the system glass inset. Observe the split view,
+/// rather than saving SwiftUI's narrower content measurement on every new page.
+private struct CommunicationSplitWidthObserver: NSViewRepresentable {
+    @Binding var width: CGFloat
+
+    func makeNSView(context: Context) -> SplitWidthView {
+        let view = SplitWidthView()
+        view.preferredWidth = width
+        view.onResize = { width = $0 }
+        return view
     }
 
-    func updateNSView(_ effectView: NSVisualEffectView, context: Context) {
-        configure(effectView)
+    func updateNSView(_ view: SplitWidthView, context: Context) {
+        view.preferredWidth = width
+        view.onResize = { width = $0 }
     }
 
-    private func configure(_ effectView: NSVisualEffectView) {
-        effectView.material = .sidebar
-        effectView.blendingMode = .behindWindow
-        effectView.state = .active
-        effectView.isEmphasized = false
+    final class SplitWidthView: NSView {
+        var preferredWidth: CGFloat = CommunicationUI.sidebarWidth
+        var onResize: ((CGFloat) -> Void)?
+        private weak var observedSplit: NSSplitView?
+        private var observer: NSObjectProtocol?
+        private var restoring = false
+
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard window != nil else { return }
+            DispatchQueue.main.async { [weak self] in self?.attach() }
+        }
+
+        private func attach() {
+            var ancestor = superview
+            while let view = ancestor {
+                if let split = view as? NSSplitView, split.isVertical,
+                   split.arrangedSubviews.count >= 2 {
+                    guard observedSplit !== split else { return }
+                    if let observer { NotificationCenter.default.removeObserver(observer) }
+                    observedSplit = split
+                    restoring = true
+                    split.layoutSubtreeIfNeeded()
+                    let available = max(CommunicationUI.sidebarMinimumWidth, split.bounds.width - 420 - split.dividerThickness)
+                    let requested = min(CommunicationUI.sidebarMaximumWidth, available,
+                                        max(CommunicationUI.sidebarMinimumWidth, preferredWidth))
+                    split.setPosition(requested, ofDividerAt: 0)
+                    observer = NotificationCenter.default.addObserver(
+                        forName: NSSplitView.didResizeSubviewsNotification,
+                        object: split, queue: .main
+                    ) { [weak self] _ in
+                        MainActor.assumeIsolated { self?.saveWidth() }
+                    }
+                    DispatchQueue.main.async { [weak self] in self?.restoring = false }
+                    return
+                }
+                ancestor = view.superview
+            }
+        }
+
+        private func saveWidth() {
+            guard !restoring, let split = observedSplit,
+                  split.window?.inLiveResize != true,
+                  let pane = split.arrangedSubviews.first else { return }
+            let measured = pane.frame.width
+            guard measured >= CommunicationUI.sidebarMinimumWidth,
+                  measured <= CommunicationUI.sidebarMaximumWidth,
+                  abs(measured - preferredWidth) > 1 else { return }
+            DispatchQueue.main.async { [weak self] in self?.onResize?(measured) }
+        }
+
+        deinit {
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+        }
     }
 }
 
@@ -134,8 +150,7 @@ private struct CommunicationSearchFieldModifier: ViewModifier {
             .padding(.horizontal, 10)
             .frame(height: 32)
             .adaptiveGlassSurface(
-                cornerRadius: 12,
-                padding: 0,
+                cornerRadius: 16,
                 treatment: .clear,
                 isInteractive: true
             )
@@ -143,42 +158,17 @@ private struct CommunicationSearchFieldModifier: ViewModifier {
 }
 
 private struct CommunicationSidebarColumnModifier: ViewModifier {
-    private let backgroundFillOpacity = 0.34
-
     func body(content: Content) -> some View {
         content
-            .padding(.top, 10)
-            .background {
-                ZStack {
-                    CommunicationSidebarMaterial()
-
-                    Color(nsColor: .windowBackgroundColor)
-                        .opacity(backgroundFillOpacity)
-                }
-                .ignoresSafeArea(edges: .vertical)
-            }
+            .padding(.top, 16)
+            .padding(.bottom, 4)
     }
 }
 
 private struct CommunicationDetailColumnModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background {
-                GeometryReader { proxy in
-                    // Keep the Liquid Glass boundary outside the visible detail
-                    // column so its system-drawn leading rim is not rendered as
-                    // a divider between the sidebar and the detail content.
-                    AdaptiveGlassBackdrop(treatment: .regular)
-                        .frame(
-                            width: proxy.size.width + 24,
-                            height: proxy.size.height
-                        )
-                        .offset(x: -24)
-                }
-                .clipped()
-                .ignoresSafeArea(.container, edges: .vertical)
-                .allowsHitTesting(false)
-            }
+            .background { IDockContentSurface() }
     }
 }
 
@@ -198,14 +188,9 @@ private struct CommunicationModuleFloatingSidebarModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear
-                    .frame(height: 48)
-                    .allowsHitTesting(false)
-            }
-            .overlay(alignment: .bottom) {
                 CommunicationModuleFloatingCard()
                 .padding(.horizontal, 12)
-                .padding(.bottom, 8)
+                .padding(.vertical, 12)
             }
     }
 }
@@ -217,33 +202,20 @@ private struct CommunicationModuleFloatingCard: View {
                 CommunicationWindowController.shared.showPhone(section: .sim)
             }
         }
-        .shadow(color: .black.opacity(0.11), radius: 9, y: 4)
         .accessibilityElement(children: .contain)
     }
 }
 
 extension View {
-    /// Uses the same quiet, rounded selection treatment as the Settings sidebar.
-    func communicationSelectionHighlight(_ isSelected: Bool) -> some View {
+    /// Native List selection owns focus, active/inactive color and contrast.
+    /// Keep only content insets here; a second fill produces a double outline.
+    func communicationListRowInsets() -> some View {
         padding(.horizontal, 8)
             .padding(.vertical, 2)
-            .background {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .fill(Color.accentColor.opacity(0.12))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                .strokeBorder(Color.accentColor.opacity(0.22), lineWidth: 0.7)
-                        }
-                }
-            }
     }
 
     func communicationSidebarMaterial() -> some View {
-        background {
-            CommunicationSidebarMaterial()
-                .ignoresSafeArea(edges: .vertical)
-        }
+        self
     }
 
     func communicationSearchField() -> some View {
@@ -262,8 +234,7 @@ extension View {
         modifier(CommunicationModuleFloatingSidebarModifier())
     }
 
-    /// Kept as the common hook for communication lists. Selection visuals are
-    /// drawn by each row so macOS does not cover them with NSTableView styling.
+    /// Kept as the common hook for native communication list selection.
     func communicationEmphasizedSelection() -> some View {
         self
     }
@@ -289,42 +260,14 @@ struct CommunicationGlassTabs<Selection: Hashable>: View {
     @Binding var selection: Selection
 
     var body: some View {
-        HStack(spacing: 3) {
+        Picker("", selection: $selection) {
             ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                let isSelected = selection == item.0
-                Button {
-                    withAnimation(.smooth(duration: 0.22)) {
-                        selection = item.0
-                    }
-                } label: {
-                    Text(L10n.tr(item.1))
-                        .font(.callout.weight(isSelected ? .semibold : .regular))
-                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 5)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .background {
-                    if isSelected {
-                        Capsule()
-                            .fill(Color.accentColor.opacity(0.10))
-                            .overlay {
-                                Capsule()
-                                    .strokeBorder(Color.white.opacity(0.48), lineWidth: 0.6)
-                            }
-                    }
-                }
-                .accessibilityAddTraits(isSelected ? .isSelected : [])
+                Text(L10n.tr(item.1)).tag(item.0)
             }
         }
-        .padding(3)
-        .adaptiveGlassSurface(
-            cornerRadius: 14,
-            padding: 0,
-            treatment: .clear,
-            isInteractive: true
-        )
+        .labelsHidden()
+        .pickerStyle(.segmented)
+        .controlSize(.regular)
     }
 }
 

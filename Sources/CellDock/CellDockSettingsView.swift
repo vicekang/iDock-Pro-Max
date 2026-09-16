@@ -5,6 +5,7 @@ import SwiftUI
 struct CellDockSettingsView: View {
     private enum Category: String, CaseIterable {
         case general = "通用"
+        case assistant = "AI 接听"
         case sounds = "声音"
         case communications = "蜂窝与通信"
         case permissions = "通知与权限"
@@ -15,6 +16,7 @@ struct CellDockSettingsView: View {
         var systemImage: String {
             switch self {
             case .general: return "gearshape"
+            case .assistant: return "phone.badge.waveform"
             case .sounds: return "speaker.wave.2.fill"
             case .communications: return "antenna.radiowaves.left.and.right"
             case .permissions: return "bell.badge"
@@ -25,6 +27,7 @@ struct CellDockSettingsView: View {
         var detail: String {
             switch self {
             case .general: return L10n.tr("启动、外观与菜单栏行为")
+            case .assistant: return L10n.tr("来电接听、音色与开场白")
             case .sounds: return L10n.tr("选择短信与来电使用的提示音")
             case .communications: return L10n.tr("查看模块状态并管理通话与短信处理")
             case .permissions: return L10n.tr("检查 CellDock 的系统访问权限")
@@ -35,6 +38,7 @@ struct CellDockSettingsView: View {
         var sidebarDetail: String {
             switch self {
             case .general: return L10n.tr("外观、语言与启动")
+            case .assistant: return L10n.tr("来电接听、音色与开场白")
             case .sounds: return L10n.tr("短信提示音与来电铃声")
             case .communications: return L10n.tr("通话、短信与转发")
             case .permissions: return L10n.tr("通知与系统访问权限")
@@ -141,7 +145,7 @@ struct CellDockSettingsView: View {
 
                     settingsSidebarGroup(
                         L10n.tr("偏好设置"),
-                        categories: [.general, .sounds, .communications]
+                        categories: [.general, .assistant, .sounds, .communications]
                     )
                     settingsSidebarGroup(
                         L10n.tr("系统"),
@@ -153,14 +157,14 @@ struct CellDockSettingsView: View {
             }
             .communicationSidebarScrollEdgeEffect()
 
-            Text(verbatim: "CellDock · \(updaterManager.currentVersion)")
+            Text(verbatim: "iDock Pro Max · \(updaterManager.currentVersion)")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 12)
-                .accessibilityLabel("CellDock \(updaterManager.currentVersion)")
+                .accessibilityLabel("iDock Pro Max \(updaterManager.currentVersion)")
         }
         .communicationInitialListFocus($listFocused)
         .communicationSidebarColumnStyle()
@@ -192,18 +196,15 @@ struct CellDockSettingsView: View {
         } label: {
             HStack(spacing: 11) {
                 Image(systemName: category.systemImage)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                    .frame(width: 24)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 26, height: 26)
+                    .background(categoryTint(category), in: RoundedRectangle(cornerRadius: 7))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(category.title)
                         .font(.body.weight(isSelected ? .semibold : .regular))
                         .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-                    Text(category.sidebarDetail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
                 }
 
                 Spacer(minLength: 4)
@@ -213,26 +214,29 @@ struct CellDockSettingsView: View {
                         .foregroundStyle(.green)
                 }
 
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 12)
-            .frame(minHeight: 58)
+            .frame(minHeight: 42)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .background {
             if isSelected {
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.12))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 13, style: .continuous)
-                            .strokeBorder(Color.accentColor.opacity(0.22), lineWidth: 0.7)
-                    }
+                IDockSelectionSurface(cornerRadius: 8)
             }
         }
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func categoryTint(_ category: Category) -> Color {
+        switch category {
+        case .general: return .gray
+        case .assistant: return .indigo
+        case .sounds: return .pink
+        case .communications: return .green
+        case .permissions: return .orange
+        case .updates: return .blue
+        }
     }
 
     private func selectSettingsCategory(_ category: Category) {
@@ -263,14 +267,13 @@ struct CellDockSettingsView: View {
 
     private var settingsContent: some View {
         ScrollView {
-            AdaptiveGlassContainer(spacing: 16) {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 28) {
                     settingsHeader
                     settingsCards
                 }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(22)
+            .frame(maxWidth: 700, alignment: .leading)
+            .padding(28)
+            .frame(maxWidth: .infinity, alignment: .top)
         }
         .scrollContentBackground(.hidden)
         .background(Color.clear)
@@ -281,7 +284,7 @@ struct CellDockSettingsView: View {
     private var settingsHeader: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(selectedCategory.title)
-                .font(.largeTitle.bold())
+                .font(.system(size: 24, weight: .bold))
             Text(selectedCategory.detail)
                 .font(.body)
                 .foregroundStyle(.secondary)
@@ -294,6 +297,8 @@ struct CellDockSettingsView: View {
         switch selectedCategory {
         case .general:
             generalSettings
+        case .assistant:
+            CodexBridgeSettingsView(bridge: appState.codexBridge)
         case .sounds:
             SoundSettingsView()
         case .communications:
@@ -307,8 +312,6 @@ struct CellDockSettingsView: View {
 
     private var generalSettings: some View {
         VStack(spacing: 16) {
-            CodexBridgeSettingsView(bridge: appState.codexBridge)
-            ModulePortabilitySettingsView(appState: appState)
             settingsSection(title: L10n.tr("隐私保护")) {
                 VStack(spacing: 12) {
                     settingRow(
@@ -350,7 +353,7 @@ struct CellDockSettingsView: View {
                         }
                         .labelsHidden()
                         .pickerStyle(.segmented)
-                        .frame(width: 276)
+                        .frame(width: 220)
                     }
                     .padding(16)
 
@@ -432,8 +435,7 @@ struct CellDockSettingsView: View {
                     } label: {
                         Label("完全退出 CellDock", systemImage: "power")
                     }
-                    .adaptiveGlassButton()
-                    .tint(.red)
+                    .buttonStyle(.bordered)
                     .help("完全退出 CellDock，并停止后台短信、来电和模块监测")
                 }
                 .padding(16)
@@ -442,62 +444,33 @@ struct CellDockSettingsView: View {
     }
 
     private var updateSettings: some View {
-        VStack(spacing: 16) {
-            settingsSection(title: L10n.tr("软件更新")) {
-                VStack(spacing: 0) {
-                    settingRow(
-                        title: L10n.tr("自动检查更新"),
-                        detail: updaterManager.currentVersion
-                    ) {
-                        Toggle("自动检查更新", isOn: Binding(
-                            get: { updaterManager.automaticallyChecksForUpdates },
-                            set: { updaterManager.automaticallyChecksForUpdates = $0 }
-                        ))
-                        .labelsHidden()
-                        .toggleStyle(.adaptiveGlass)
-                    }
-                    .padding(16)
-
-                    Divider().padding(.horizontal, 16)
-
-                    settingRow(
-                        title: L10n.tr("更新频道"),
-                        detail: updaterManager.channel == .stable
-                            ? L10n.tr("仅接收经过验证的正式版本")
-                            : L10n.tr("提前体验新功能，可能不够稳定")
-                    ) {
-                        Picker("更新频道", selection: $updaterManager.channel) {
-                            ForEach(UpdateChannel.allCases) { channel in
-                                Text(channel.title).tag(channel)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.segmented)
-                        .frame(width: 180)
-                    }
-                    .padding(16)
-
-                    Divider().padding(.horizontal, 16)
-
-                    settingRow(
-                        title: L10n.tr("立即检查"),
-                        detail: L10n.tr("从 CellDock 官方服务器检查并验证更新")
-                    ) {
-                        Button("检查更新…") {
-                            updaterManager.checkForUpdates()
-                        }
-                        .adaptiveGlassButton()
-                        .disabled(!updaterManager.canCheckForUpdates)
-                    }
-                    .padding(16)
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(spacing: 20) {
+                if let image = NSImage(named: NSImage.Name("NSApplicationIcon")) {
+                    Image(nsImage: image).resizable().frame(width: 72, height: 72)
                 }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: IDockBrand.name).font(.title.bold())
+                    Text(updaterManager.currentVersion).foregroundStyle(.secondary)
+                    Text(L10n.tr("Codex 原生语音 · Liquid Glass")).font(.callout).foregroundStyle(.secondary)
+                }
+            }.padding(.vertical, 12)
+            settingsSection(title: L10n.tr("版本与更新")) {
+                settingRow(title: L10n.tr("GitHub 发布版本"),
+                           detail: L10n.tr("查看此定制版本的更新与安装包。")) {
+                    Link(L10n.tr("查看更新"), destination: IDockBrand.releasesURL)
+                        .adaptiveGlassButton()
+                }.padding(16)
             }
+            Text(L10n.tr("基于开源项目 CellDock 构建。"))
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 
     private var communicationSettings: some View {
         VStack(spacing: 16) {
             moduleStatusStrip
+            ModulePortabilitySettingsView(appState: appState)
 
             settingsSection(title: L10n.tr("通话录音")) {
                 settingRow(
@@ -712,20 +685,14 @@ struct CellDockSettingsView: View {
         title: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.headline)
-                .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 12)
-
-            Divider().padding(.horizontal, 16)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 2)
             content()
+                .adaptiveTranslucentCard(cornerRadius: 12, padding: 0)
         }
-        .adaptiveGlassSurface(
-            cornerRadius: 18,
-            treatment: .regular
-        )
     }
 
     private func settingRow<Accessory: View>(
@@ -739,8 +706,8 @@ struct CellDockSettingsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(title)
-                        .font(.headline)
-                        .lineLimit(1)
+                        .font(.system(size: 13, weight: .medium))
+                        .fixedSize(horizontal: false, vertical: true)
                     if let status {
                         Text(status)
                             .font(.caption.weight(.semibold))
@@ -756,6 +723,7 @@ struct CellDockSettingsView: View {
             }
             Spacer(minLength: 16)
             accessory()
+                .fixedSize(horizontal: true, vertical: false)
         }
     }
 

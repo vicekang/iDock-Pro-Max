@@ -32,6 +32,12 @@ struct MessagesWindowView: View {
                         conversation: conversation,
                         contactName: contacts.displayName(for: conversation.address),
                         scrollTargetMessageID: model.requestedMessageID,
+                        draft: Binding(
+                            get: { model.conversationDrafts[conversation.id] ?? "" },
+                            set: { value in
+                                model.conversationDrafts[conversation.id] = value.isEmpty ? nil : value
+                            }
+                        ),
                         didRouteMessage: selectConversation(for:)
                     )
                     .environmentObject(appState)
@@ -68,7 +74,8 @@ struct MessagesWindowView: View {
         .onChange(of: conversations.map(\.id)) { _, _ in
             chooseDefaultConversationIfNeeded()
         }
-        .onChange(of: selectedConversationID) { _, _ in
+        .onChange(of: selectedConversationID) { _, selectedID in
+            guard selectedID != nil else { return }
             isComposingNew = false
             markSelectedConversationRead()
         }
@@ -91,7 +98,7 @@ struct MessagesWindowView: View {
 
             Divider()
 
-            List {
+            List(selection: $selectedConversationID) {
                 if filteredConversations.isEmpty {
                     ContentUnavailableView.search(text: searchText)
                 } else {
@@ -100,9 +107,8 @@ struct MessagesWindowView: View {
                             conversation: conversation,
                             displayName: contacts.displayName(for: conversation.address)
                         )
-                        .communicationSelectionHighlight(selectedConversationID == conversation.id)
+                        .communicationListRowInsets()
                         .contentShape(Rectangle())
-                        .onTapGesture { selectedConversationID = conversation.id }
                         .accessibilityAddTraits(
                             selectedConversationID == conversation.id ? .isSelected : []
                         )
@@ -320,9 +326,8 @@ private struct MessageThreadView: View {
     let conversation: MessageConversation
     let contactName: String?
     let scrollTargetMessageID: SMSMessage.ID?
+    @Binding var draft: String
     let didRouteMessage: (String) -> Void
-
-    @State private var draft = ""
     @FocusState private var composerFocused: Bool
 
     var body: some View {
@@ -491,6 +496,7 @@ private struct MessageThreadView: View {
                 .controlSize(.small)
                 .keyboardShortcut(.return, modifiers: [.command])
                 .disabled(!canSend)
+                .accessibilityLabel(L10n.tr("发送"))
                 .help(appState.moduleHasCall(nil) ? L10n.tr("当前模组通话期间会保存草稿，但不能发送短信") : L10n.tr("发送（⌘Return）"))
             }
 
@@ -816,11 +822,13 @@ private struct NewConversationView: View {
                     .controlSize(.small)
                     .keyboardShortcut(.return, modifiers: [.command])
                     .disabled(!canSend)
+                    .accessibilityLabel(L10n.tr("发送"))
+                    .help(L10n.tr("发送（⌘Return）"))
                 }
                 HStack {
                     Text(L10n.tr("%lld 个 UCS-2 单元", Int64(bodyText.utf16.count)))
                     Spacer()
-                    Text(L10n.tr("通过当前 SIM 卡发送"))
+                    Text(L10n.tr(appState.currentCommunicationModule == nil ? "未选择通信模组" : "通过当前 SIM 卡发送"))
                 }
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
